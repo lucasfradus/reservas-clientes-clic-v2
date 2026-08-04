@@ -1,15 +1,21 @@
 import type {
   CatalogoSede,
   CheckoutPayload,
+  CheckoutPlanPayload,
+  CheckoutPlanResponse,
   CheckoutResponse,
   Clase,
+  HorariosResponse,
   Sede,
 } from '../types';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+// En dev puede quedar vacío a propósito: las llamadas van a `/api/...`
+// same-origin y las resuelve el proxy de Vite (ver vite.config.ts). En el
+// build de producción la var es obligatoria y apunta al backend.
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
-if (!BASE_URL) {
-  // Fail loud during development if env is missing.
+if (!BASE_URL && !import.meta.env.DEV) {
+  // Fail loud si falta en un build de producción.
   // eslint-disable-next-line no-console
   console.error('VITE_API_BASE_URL is not defined');
 }
@@ -99,6 +105,26 @@ export function getCatalogo(sede?: string | number): Promise<CatalogoSede[]> {
 
 export function checkout(payload: CheckoutPayload): Promise<CheckoutResponse> {
   return request<CheckoutResponse>('/api/public/checkout', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Horarios fijables reales para un plan de horario fijo. */
+export function getHorarios(
+  sedeId: number,
+  planId: number,
+): Promise<HorariosResponse> {
+  return request<HorariosResponse>(
+    `/api/public/sedes/${sedeId}/horarios?planId=${planId}`,
+  );
+}
+
+/** Inicia el checkout de compra de un plan → devuelve el init_point de MP. */
+export function checkoutPlan(
+  payload: CheckoutPlanPayload,
+): Promise<CheckoutPlanResponse> {
+  return request<CheckoutPlanResponse>('/api/public/checkout-plan', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
