@@ -33,6 +33,25 @@ export function formatDayShort(iso: string): string {
   return parts.replace(/\./g, '').replace(/^\w/, (c) => c.toUpperCase());
 }
 
+/**
+ * Etiqueta corta para el selector de día: "Hoy", "Mañana" o "Jue 7".
+ * Los dos primeros días se nombran en vez de numerarse porque es lo que
+ * la gente busca primero.
+ */
+export function formatDayChip(iso: string): string {
+  const key = dayKey(iso);
+  const ahora = new Date();
+  if (key === dayKey(ahora.toISOString())) return 'Hoy';
+  const manana = new Date(ahora.getTime() + 24 * 60 * 60 * 1000);
+  if (key === dayKey(manana.toISOString())) return 'Mañana';
+  const parts = new Intl.DateTimeFormat('es-AR', {
+    timeZone: TZ,
+    weekday: 'short',
+    day: 'numeric',
+  }).format(new Date(iso));
+  return parts.replace(/\./g, '').replace(/^\w/, (c) => c.toUpperCase());
+}
+
 export function formatTime(iso: string): string {
   // "18:30"
   const d = new Date(iso);

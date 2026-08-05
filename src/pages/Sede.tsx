@@ -7,7 +7,7 @@ import { Loading } from '../components/ui/Loading';
 import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { ClaseRow } from '../components/ui/ClaseRow';
 import { SedeGaleria } from '../components/ui/SedeGaleria';
-import { dayKey, formatDayLong, formatPrice } from '../lib/format';
+import { dayKey, formatDayChip, formatDayLong, formatPrice } from '../lib/format';
 import { trackMetaEvent } from '../lib/meta';
 import './Sede.css';
 
@@ -23,6 +23,7 @@ export default function Sede() {
   const [selectedActividadId, setSelectedActividadId] = useState<number | null>(
     null,
   );
+  const [selectedDia, setSelectedDia] = useState<string | null>(null);
   const [showSticky, setShowSticky] = useState(false);
   const clasesRef = useRef<HTMLDivElement>(null);
 
@@ -45,6 +46,7 @@ export default function Sede() {
     if (!slug) return;
     setState({ status: 'loading' });
     setSelectedActividadId(null);
+    setSelectedDia(null);
     getSedes()
       .then(async (sedes) => {
         const sede = sedes.find((s) => s.slug === slug);
@@ -83,33 +85,71 @@ export default function Sede() {
     trackMetaEvent('ViewContent', params);
   }, [state]);
 
+  // Los dos filtros (día y actividad) se cuentan cruzados: cada uno muestra
+  // cuántas clases quedarían si se aplicara sobre el otro. Las opciones que
+  // dan cero se deshabilitan en vez de desaparecer, así la tira no cambia de
+  // largo al filtrar y no se puede llegar a una combinación vacía.
+
   // Distinct activities present in the class list, with counts. Used to
-  // render the filter pills. Sorted by count desc so the most frequent one
-  // sits right after "Todas".
+  // render the filter pills. Sorted by total desc (no por el contador visible)
+  // para que las pills no se reordenen al cambiar de día.
   const actividades = useMemo(() => {
     if (state.status !== 'ok') return [];
-    const map = new Map<number, { id: number; nombre: string; color: string; count: number }>();
+    const map = new Map<
+      number,
+      { id: number; nombre: string; color: string; count: number; total: number }
+    >();
     for (const c of state.clases) {
-      const existing = map.get(c.actividad.id);
-      if (existing) {
-        existing.count += 1;
-      } else {
-        map.set(c.actividad.id, {
+      let entry = map.get(c.actividad.id);
+      if (!entry) {
+        entry = {
           id: c.actividad.id,
           nombre: c.actividad.nombre,
           color: c.actividad.color,
-          count: 1,
-        });
+          count: 0,
+          total: 0,
+        };
+        map.set(c.actividad.id, entry);
+      }
+      entry.total += 1;
+      if (selectedDia == null || dayKey(c.inicio) === selectedDia) {
+        entry.count += 1;
       }
     }
-    return Array.from(map.values()).sort((a, b) => b.count - a.count);
-  }, [state]);
+    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+  }, [state, selectedDia]);
+
+  // Días con clases, en orden cronológico. Es el selector que evita scrolear
+  // toda la grilla para llegar a una clase de dentro de tres días.
+  const dias = useMemo(() => {
+    if (state.status !== 'ok') return [];
+    const map = new Map<string, { key: string; label: string; count: number }>();
+    for (const c of state.clases) {
+      const key = dayKey(c.inicio);
+      let entry = map.get(key);
+      if (!entry) {
+        entry = { key, label: formatDayChip(c.inicio), count: 0 };
+        map.set(key, entry);
+      }
+      if (selectedActividadId == null || c.actividad.id === selectedActividadId) {
+        entry.count += 1;
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.key.localeCompare(b.key));
+  }, [state, selectedActividadId]);
+
+  const clasesDelDia = actividades.reduce((sum, a) => sum + a.count, 0);
+  const clasesDeActividad = dias.reduce((sum, d) => sum + d.count, 0);
 
   const filteredClases = useMemo(() => {
     if (state.status !== 'ok') return [];
-    if (selectedActividadId == null) return state.clases;
-    return state.clases.filter((c) => c.actividad.id === selectedActividadId);
-  }, [state, selectedActividadId]);
+    return state.clases.filter(
+      (c) =>
+        (selectedActividadId == null ||
+          c.actividad.id === selectedActividadId) &&
+        (selectedDia == null || dayKey(c.inicio) === selectedDia),
+    );
+  }, [state, selectedActividadId, selectedDia]);
 
   const grouped = useMemo(() => {
     const groups = new Map<string, Clase[]>();
@@ -258,6 +298,42 @@ export default function Sede() {
           </p>
         </div>
 
+        {dias.length > 1 && (
+          <div
+            className="sede__filters sede__filters--dias"
+            role="tablist"
+            aria-label="Filtrar por día"
+          >
+            <button
+              type="button"
+              role="tab"
+              aria-selected={selectedDia === null}
+              className={`sede__pill${selectedDia === null ? ' sede__pill--active' : ''}`}
+              onClick={() => setSelectedDia(null)}
+            >
+              <span>Todos</span>
+              <span className="sede__pill-count">{clasesDeActividad}</span>
+            </button>
+            {dias.map((dia) => {
+              const active = selectedDia === dia.key;
+              return (
+                <button
+                  key={dia.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  disabled={dia.count === 0}
+                  className={`sede__pill${active ? ' sede__pill--active' : ''}`}
+                  onClick={() => setSelectedDia(dia.key)}
+                >
+                  <span>{dia.label}</span>
+                  <span className="sede__pill-count">{dia.count}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {actividades.length > 1 && (
           <div
             className="sede__filters"
@@ -272,7 +348,7 @@ export default function Sede() {
               onClick={() => setSelectedActividadId(null)}
             >
               <span>Todas</span>
-              <span className="sede__pill-count">{clases.length}</span>
+              <span className="sede__pill-count">{clasesDelDia}</span>
             </button>
             {actividades.map((act) => {
               const active = selectedActividadId === act.id;
@@ -282,6 +358,7 @@ export default function Sede() {
                   type="button"
                   role="tab"
                   aria-selected={active}
+                  disabled={act.count === 0}
                   className={`sede__pill${active ? ' sede__pill--active' : ''}`}
                   onClick={() => setSelectedActividadId(act.id)}
                 >
@@ -311,15 +388,18 @@ export default function Sede() {
         ) : filteredClases.length === 0 ? (
           <div className="sede__empty">
             <p className="t-display" style={{ fontSize: 22 }}>
-              No hay clases de esta actividad
+              No hay clases con estos filtros
             </p>
             <p className="t-muted" style={{ marginTop: 8 }}>
-              Probá con otra actividad o mirá todas.
+              Probá con otro día u otra actividad.
             </p>
             <button
               type="button"
               className="sede__empty-btn"
-              onClick={() => setSelectedActividadId(null)}
+              onClick={() => {
+                setSelectedActividadId(null);
+                setSelectedDia(null);
+              }}
             >
               Ver todas las clases
             </button>
