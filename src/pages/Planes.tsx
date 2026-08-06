@@ -452,7 +452,7 @@ export default function Planes() {
         currency: 'ARS',
       };
       if (precioCheckout != null) params.value = precioCheckout;
-      trackMetaEvent('InitiateCheckout', params);
+      trackMetaEvent('InitiateCheckout', params, undefined, sede.slug);
       window.location.href = res.initPoint;
     } catch (err) {
       setSubmitting(false);
@@ -489,7 +489,7 @@ export default function Planes() {
         params.value = sede.precioPrueba;
         params.currency = 'ARS';
       }
-      trackMetaEvent('InitiateCheckout', params);
+      trackMetaEvent('InitiateCheckout', params, undefined, sede.slug);
       window.location.href = res.initPoint;
     } catch (err) {
       setSubmitting(false);

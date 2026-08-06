@@ -82,7 +82,7 @@ function toNumber(v: unknown): number | null {
 }
 
 function normalizeSede(
-  raw: Sede & { precioPrueba: unknown; fotos?: unknown },
+  raw: Sede & { precioPrueba: unknown; fotos?: unknown; metaPixelId?: unknown },
 ): Sede {
   return {
     ...raw,
@@ -91,14 +91,38 @@ function normalizeSede(
     fotos: Array.isArray(raw.fotos)
       ? raw.fotos.filter((f): f is string => typeof f === 'string' && f !== '')
       : [],
+    // Idem: una API vieja no manda el campo. Sin pixel propio → el general.
+    metaPixelId:
+      typeof raw.metaPixelId === 'string' && raw.metaPixelId !== ''
+        ? raw.metaPixelId
+        : null,
   };
 }
 
 export async function getSedes(): Promise<Sede[]> {
   const raw = await request<
-    Array<Sede & { precioPrueba: unknown; fotos?: unknown }>
+    Array<Sede & { precioPrueba: unknown; fotos?: unknown; metaPixelId?: unknown }>
   >(`/api/public/sedes?tipo=${TIPO}`);
   return raw.map(normalizeSede);
+}
+
+/**
+ * Igual que `getSedes()` pero memoizado: el mapa de pixels de Meta lo necesita
+ * el layout en cada pantalla, y las páginas piden las sedes igual. Sin esto el
+ * mismo GET saldría dos veces por vista.
+ *
+ * Si falla, se olvida la promesa para que el siguiente intento vuelva a pegarle.
+ */
+let sedesPromise: Promise<Sede[]> | null = null;
+
+export function getSedesCached(): Promise<Sede[]> {
+  if (!sedesPromise) {
+    sedesPromise = getSedes().catch((err) => {
+      sedesPromise = null;
+      throw err;
+    });
+  }
+  return sedesPromise;
 }
 
 export function getClases(sedeId: number): Promise<Clase[]> {

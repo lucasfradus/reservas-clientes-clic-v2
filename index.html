@@ -11,7 +11,9 @@
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/css2?family=Prata&display=swap" rel="stylesheet" />
     <title>CLIC · Reservá tu clase de prueba</title>
-    <!-- Meta Pixel Code -->
+    <!-- Meta Pixel: solo el loader. Los `init` y los eventos los maneja
+         src/lib/meta.ts, porque el pixel depende de la sede (cada franquicia
+         con cuenta publicitaria propia tiene el suyo). -->
     <script>
     !function(f,b,e,v,n,t,s)
     {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -21,13 +23,10 @@
     t.src=v;s=b.getElementsByTagName(e)[0];
     s.parentNode.insertBefore(t,s)}(window, document,'script',
     'https://connect.facebook.net/en_US/fbevents.js');
-    fbq('init', '1652467869286672');
-    fbq('track', 'PageView');
     </script>
-    <!-- End Meta Pixel Code -->
+    <!-- End Meta Pixel -->
   </head>
   <body>
-    <noscript><img height="1" width="1" style="display:none" src="https://www.facebook.com/tr?id=1652467869286672&ev=PageView&noscript=1" /></noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

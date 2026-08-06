@@ -82,7 +82,7 @@ export default function Sede() {
       params.value = state.sede.precioPrueba;
       params.currency = 'ARS';
     }
-    trackMetaEvent('ViewContent', params);
+    trackMetaEvent('ViewContent', params, undefined, state.sede.slug);
   }, [state]);
 
   // Los dos filtros (día y actividad) se cuentan cruzados: cada uno muestra
