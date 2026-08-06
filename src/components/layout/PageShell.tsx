@@ -1,9 +1,14 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Header } from './Header';
 import { Footer } from './Footer';
 import { initAnalytics, trackPageView } from '../../lib/analytics';
-import { trackMetaPageView } from '../../lib/meta';
+import {
+  initMetaPixels,
+  recordarSede,
+  slugDeRuta,
+  trackMetaPageView,
+} from '../../lib/meta';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -15,21 +20,21 @@ function ScrollToTop() {
 
 function AnalyticsTracker() {
   const { pathname, search } = useLocation();
-  const metaFirstRender = useRef(true);
 
   useEffect(() => {
     initAnalytics();
+    initMetaPixels();
   }, []);
 
   useEffect(() => {
     trackPageView(pathname + search);
-    // Meta: el PageView inicial ya lo dispara index.html; solo trackeamos
-    // las navegaciones siguientes para no duplicar la primera pantalla.
-    if (metaFirstRender.current) {
-      metaFirstRender.current = false;
-    } else {
-      trackMetaPageView();
-    }
+
+    // Meta: el PageView de TODAS las pantallas sale de acá, incluida la
+    // primera (index.html ya no dispara nada). Va al pixel de la sede; en la
+    // landing, que no tiene sede, a todos los pixels.
+    const slug = slugDeRuta(pathname, search);
+    if (slug && /^\/sede\//.test(pathname)) recordarSede(slug);
+    trackMetaPageView(slug);
   }, [pathname, search]);
 
   return null;

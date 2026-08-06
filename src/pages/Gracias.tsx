@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { formatDayLong, formatTime } from '../lib/format';
 import { trackEvent } from '../lib/analytics';
-import { trackMetaEvent } from '../lib/meta';
+import { slugDeRuta, trackMetaEvent } from '../lib/meta';
 import './Gracias.css';
 
 // Estados de pago que devuelve Mercado Pago en `collection_status`.
@@ -155,10 +155,14 @@ export default function Gracias() {
     if (precio && Number.isFinite(Number(precio))) {
       purchaseParams.value = Number(precio);
     }
+    // La sede define a qué pixel (y por lo tanto a qué cuenta publicitaria) se
+    // le atribuye la venta. El backend la manda en el back_url de MP; si el
+    // link es viejo y no la trae, cae en la última sede visitada.
     trackMetaEvent(
       'Purchase',
       purchaseParams,
       eventId ? { eventID: eventId } : undefined,
+      slugDeRuta(window.location.pathname, window.location.search),
     );
   }, [status, precio, currency, paymentId, params]);
 

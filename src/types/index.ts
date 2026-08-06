@@ -11,6 +11,11 @@ export interface Sede {
   whatsappUrl: string | null;
   googleMapsUrl: string | null;
   precioPrueba: number | null;
+  /**
+   * Pixel de Meta propio de la sede (franquicias con su propia cuenta
+   * publicitaria). null = usa el pixel general de la marca.
+   */
+  metaPixelId: string | null;
 }
 
 export interface Actividad {
