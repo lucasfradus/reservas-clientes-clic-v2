@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Clase, Sede } from '../../types';
 import { formatTime } from '../../lib/format';
-import { trackEvent } from '../../lib/analytics';
+import { trackVenta } from '../../lib/analytics';
 import './ClaseRow.css';
 
 export function ClaseRow({ clase, sede }: { clase: Clase; sede: Sede }) {
@@ -16,11 +16,16 @@ export function ClaseRow({ clase, sede }: { clase: Clase; sede: Sede }) {
       state={{ mode: 'prueba', clase }}
       className="clase-row"
       onClick={() =>
-        trackEvent('begin_reserva', {
-          clase_id: clase.id,
-          sede_slug: sede.slug,
-          sede_nombre: sede.nombre,
-          actividad: clase.actividad.nombre,
+        // Este clic ya elige horario y abre el checkout de prueba con la clase
+        // precargada, así que es el begin_checkout de ese camino. El otro
+        // camino (entrar a /precios y tocar "reservar prueba") lo dispara
+        // `elegirPrueba`, y nunca se pasa por los dos.
+        trackVenta('begin_checkout', {
+          nombre: clase.actividad.nombre,
+          categoria: 'Trial',
+          sede: sede.nombre,
+          sedeSlug: sede.slug,
+          precio: sede.precioPrueba,
         })
       }
     >

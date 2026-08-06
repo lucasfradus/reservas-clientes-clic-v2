@@ -8,6 +8,7 @@ import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { ClaseRow } from '../components/ui/ClaseRow';
 import { SedeGaleria } from '../components/ui/SedeGaleria';
 import { dayKey, formatDayChip, formatDayLong, formatPrice } from '../lib/format';
+import { trackVenta } from '../lib/analytics';
 import { trackMetaEvent } from '../lib/meta';
 import './Sede.css';
 
@@ -71,7 +72,7 @@ export default function Sede() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(load, [slug]);
 
-  // Meta: registrar la vista de la sede (contenido + oferta) una vez cargada.
+  // Registrar la vista de la sede (contenido + oferta) una vez cargada.
   useEffect(() => {
     if (state.status !== 'ok') return;
     const params: Record<string, unknown> = {
@@ -83,6 +84,16 @@ export default function Sede() {
       params.currency = 'ARS';
     }
     trackMetaEvent('ViewContent', params, undefined, state.sede.slug);
+
+    // El equivalente en GA4, que además abre el embudo de ecommerce
+    // (view_item → begin_checkout → add_payment_info → purchase).
+    trackVenta('view_item', {
+      nombre: `Clase de prueba - ${state.sede.nombre}`,
+      categoria: 'Trial',
+      sede: state.sede.nombre,
+      sedeSlug: state.sede.slug,
+      precio: state.sede.precioPrueba,
+    });
   }, [state]);
 
   // Los dos filtros (día y actividad) se cuentan cruzados: cada uno muestra

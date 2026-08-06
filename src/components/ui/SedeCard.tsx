@@ -16,8 +16,8 @@ export function SedeCard({ sede }: { sede: Sede }) {
       className="sede-card"
       onClick={() =>
         trackEvent('select_sede', {
+          sede: sede.nombre,
           sede_slug: sede.slug,
-          sede_nombre: sede.nombre,
         })
       }
     >
