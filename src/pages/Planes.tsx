@@ -30,7 +30,7 @@ import {
   formatPrice,
   formatTime,
 } from '../lib/format';
-import { trackEvent } from '../lib/analytics';
+import { trackEvent, trackVenta } from '../lib/analytics';
 import { trackMetaEvent } from '../lib/meta';
 import './Planes.css';
 
@@ -200,10 +200,6 @@ export default function Planes() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(cargar, [slug]);
 
-  useEffect(() => {
-    trackEvent('view_planes', { sede_slug: slug });
-  }, [slug]);
-
   // Si llegan con una clase preseleccionada (desde el listado de la sede),
   // abrimos directo el checkout de prueba en el paso de datos.
   const preloadApplied = useRef(false);
@@ -223,6 +219,13 @@ export default function Planes() {
   const tipos = load.status === 'ok' ? load.tipos : [];
   const clases = load.status === 'ok' ? load.clases : [];
   const sede = load.status === 'ok' ? load.sede : undefined;
+
+  // Se espera a que cargue el catálogo para poder mandar el nombre de la sede,
+  // que es como se la lee en los informes.
+  useEffect(() => {
+    if (!sede) return;
+    trackEvent('view_planes', { sede: sede.nombre, sede_slug: sede.slug });
+  }, [sede]);
 
   const frecuenciasDisponibles = useMemo(
     () => new Set(tipos.map((t) => t.frecuencia)),
@@ -353,7 +356,13 @@ export default function Planes() {
     setDia('');
     setStep(1);
     setScreen('checkout');
-    trackEvent('begin_prueba', { sede_slug: slug });
+    trackVenta('begin_checkout', {
+      nombre: 'Clase de prueba',
+      categoria: 'Trial',
+      sede: sede?.nombre,
+      sedeSlug: sede?.slug ?? slug,
+      precio: sede?.precioPrueba,
+    });
     scrollTop();
   };
 
@@ -367,7 +376,16 @@ export default function Planes() {
     setHorarios({ status: 'idle' });
     setStep(1);
     setScreen('checkout');
-    trackEvent('begin_plan', { sede_slug: slug, plan: t.nombre });
+    // Misma venta que la prueba a ojos de GA4, pero con `categoria` distinta:
+    // es lo único que después separa "cuántas pruebas vendí" de "cuántas
+    // suscripciones vendí", tanto en los informes como en las campañas.
+    trackVenta('begin_checkout', {
+      nombre: t.nombre,
+      categoria: 'Subscription',
+      sede: sede?.nombre,
+      sedeSlug: sede?.slug ?? slug,
+      precio: precioLista(t),
+    });
     scrollTop();
   };
 
@@ -453,6 +471,13 @@ export default function Planes() {
       };
       if (precioCheckout != null) params.value = precioCheckout;
       trackMetaEvent('InitiateCheckout', params, undefined, sede.slug);
+      trackVenta('add_payment_info', {
+        nombre: tipoSel.nombre,
+        categoria: 'Subscription',
+        sede: sede.nombre,
+        sedeSlug: sede.slug,
+        precio: precioCheckout,
+      });
       window.location.href = res.initPoint;
     } catch (err) {
       setSubmitting(false);
@@ -490,6 +515,13 @@ export default function Planes() {
         params.currency = 'ARS';
       }
       trackMetaEvent('InitiateCheckout', params, undefined, sede.slug);
+      trackVenta('add_payment_info', {
+        nombre: clase?.actividad.nombre ?? 'Clase de prueba',
+        categoria: 'Trial',
+        sede: sede.nombre,
+        sedeSlug: sede.slug,
+        precio: sede.precioPrueba,
+      });
       window.location.href = res.initPoint;
     } catch (err) {
       setSubmitting(false);

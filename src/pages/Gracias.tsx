@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { formatDayLong, formatTime } from '../lib/format';
-import { trackEvent } from '../lib/analytics';
+import { trackVenta } from '../lib/analytics';
 import { slugDeRuta, trackMetaEvent } from '../lib/meta';
 import './Gracias.css';
 
@@ -12,6 +12,27 @@ function normalizeStatus(value: string | null): PaymentStatus {
   if (value === 'approved') return 'approved';
   if (value === 'rejected') return 'rejected';
   return 'pending';
+}
+
+/**
+ * ¿Esta compra ya se contó en GA4? El `useRef` de abajo cubre el doble montaje
+ * de StrictMode, pero no sobrevive a un F5: sin esto, cada recarga de la página
+ * de gracias sumaría una venta más.
+ *
+ * Marca la transacción como contada de paso. Sin id (un link viejo sin
+ * `payment_id`) no hay nada que deduplicar y se deja pasar.
+ */
+function purchaseYaContado(transactionId: string): boolean {
+  if (!transactionId) return false;
+  const clave = `ga:purchase:${transactionId}`;
+  try {
+    if (sessionStorage.getItem(clave)) return true;
+    sessionStorage.setItem(clave, '1');
+  } catch {
+    // Safari en modo privado puede tirar acá. Ante la duda se cuenta: perder
+    // una venta real es peor que contar dos veces una recarga.
+  }
+  return false;
 }
 
 /** Fecha en formato UTC compacto para iCalendar: YYYYMMDDTHHMMSSZ. */
@@ -131,19 +152,21 @@ export default function Gracias() {
   const precio = params.get('precio') ?? '';
   const currency = params.get('currency') || 'ARS';
   const paymentId = params.get('payment_id') ?? '';
+  // El checkout de planes vuelve con `tipo=plan` y el nombre del plan.
+  const plan = params.get('plan') ?? '';
+  const esPlan = params.get('tipo') === 'plan';
 
   const fechaDate = fecha ? new Date(fecha) : null;
   const fechaValida = fechaDate != null && !Number.isNaN(fechaDate.getTime());
   const hayDetalle = Boolean(actividad) && fechaValida;
 
-  // Purchase del Pixel: solo si el pago fue aprobado y una única vez (el ref
-  // sobrevive el doble montaje de StrictMode en desarrollo).
+  // Compra confirmada: solo si el pago fue aprobado y una única vez (el ref
+  // sobrevive el doble montaje de StrictMode en desarrollo; contra el F5 está
+  // `purchaseYaContado`).
   const disparado = useRef(false);
   useEffect(() => {
     if (status !== 'approved' || disparado.current) return;
     disparado.current = true;
-
-    trackEvent('reserva_completada');
 
     // eventID para deduplicar con la Conversions API del backend: usamos el
     // `event_id` que mande el server; si todavía no lo manda, uno estable
@@ -158,13 +181,36 @@ export default function Gracias() {
     // La sede define a qué pixel (y por lo tanto a qué cuenta publicitaria) se
     // le atribuye la venta. El backend la manda en el back_url de MP; si el
     // link es viejo y no la trae, cae en la última sede visitada.
+    const slugSede = slugDeRuta(window.location.pathname, window.location.search);
     trackMetaEvent(
       'Purchase',
       purchaseParams,
       eventId ? { eventID: eventId } : undefined,
-      slugDeRuta(window.location.pathname, window.location.search),
+      slugSede,
     );
-  }, [status, precio, currency, paymentId, params]);
+
+    // GA4: el id del pago de Mercado Pago es el `transaction_id`. NO sirve el
+    // id de la clase: lo comparten todas las personas que reservan ese mismo
+    // horario, y GA4 deduplica por ese campo — se quedaría con una sola compra
+    // por clase y tiraría el resto.
+    const transactionId = paymentId || params.get('collection_id') || '';
+    if (!purchaseYaContado(transactionId)) {
+      trackVenta(
+        'purchase',
+        {
+          // `tipo=plan` lo manda el backend en el back_url del checkout de
+          // planes: es lo que separa una suscripción de una clase de prueba.
+          nombre: esPlan ? plan || 'Plan' : actividad || 'Clase de prueba',
+          categoria: esPlan ? 'Subscription' : 'Trial',
+          sede: sede || undefined,
+          sedeSlug: slugSede ?? undefined,
+          precio:
+            precio && Number.isFinite(Number(precio)) ? Number(precio) : null,
+        },
+        { transactionId: transactionId || undefined },
+      );
+    }
+  }, [status, precio, currency, paymentId, params, actividad, sede, esPlan, plan]);
 
   if (status === 'rejected') {
     return (
