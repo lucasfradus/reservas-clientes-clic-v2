@@ -1,15 +1,28 @@
 import type {
   CatalogoSede,
   CheckoutPayload,
+  CheckoutPlanPayload,
+  CheckoutPlanResponse,
   CheckoutResponse,
   Clase,
+  HorariosResponse,
   Sede,
 } from '../types';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+// En dev puede quedar vacío a propósito: las llamadas van a `/api/...`
+// same-origin y las resuelve el proxy de Vite (ver vite.config.ts). En el
+// build de producción la var es obligatoria y apunta al backend.
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
-if (!BASE_URL) {
-  // Fail loud during development if env is missing.
+/**
+ * Este front es el de Pilates (reservas.clicpilates.com), un solo tenant.
+ * `tipo` filtra por disciplina en la API vía `Sede.plantillaRutina`, así las
+ * sedes de gimnasio (que reservan gratis desde clicfit-web) no se cuelan acá.
+ */
+const TIPO = 'PILATES';
+
+if (!BASE_URL && !import.meta.env.DEV) {
+  // Fail loud si falta en un build de producción.
   // eslint-disable-next-line no-console
   console.error('VITE_API_BASE_URL is not defined');
 }
@@ -84,12 +97,12 @@ function normalizeSede(
 export async function getSedes(): Promise<Sede[]> {
   const raw = await request<
     Array<Sede & { precioPrueba: unknown; fotos?: unknown }>
-  >('/api/public/sedes');
+  >(`/api/public/sedes?tipo=${TIPO}`);
   return raw.map(normalizeSede);
 }
 
 export function getClases(sedeId: number): Promise<Clase[]> {
-  return request<Clase[]>(`/api/public/sedes/${sedeId}/clases`);
+  return request<Clase[]>(`/api/public/sedes/${sedeId}/clases?tipo=${TIPO}`);
 }
 
 export function getCatalogo(sede?: string | number): Promise<CatalogoSede[]> {
@@ -99,6 +112,26 @@ export function getCatalogo(sede?: string | number): Promise<CatalogoSede[]> {
 
 export function checkout(payload: CheckoutPayload): Promise<CheckoutResponse> {
   return request<CheckoutResponse>('/api/public/checkout', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+/** Horarios fijables reales para un plan de horario fijo. */
+export function getHorarios(
+  sedeId: number,
+  planId: number,
+): Promise<HorariosResponse> {
+  return request<HorariosResponse>(
+    `/api/public/sedes/${sedeId}/horarios?planId=${planId}`,
+  );
+}
+
+/** Inicia el checkout de compra de un plan → devuelve el init_point de MP. */
+export function checkoutPlan(
+  payload: CheckoutPlanPayload,
+): Promise<CheckoutPlanResponse> {
+  return request<CheckoutPlanResponse>('/api/public/checkout-plan', {
     method: 'POST',
     body: JSON.stringify(payload),
   });

@@ -53,6 +53,18 @@ export interface CatalogoPrecios {
   tarjeta: number | null;
 }
 
+export interface CatalogoPlanFijo {
+  planId: number;
+  ingresosPorSemana: number | null;
+  accesos: number;
+}
+
+export interface CatalogoPlanFlexible {
+  planId: number;
+  accesos: number;
+  precios: CatalogoPrecios;
+}
+
 export interface CatalogoTipoPlan {
   id: number;
   nombre: string;
@@ -63,7 +75,54 @@ export interface CatalogoTipoPlan {
   destacado: boolean;
   caracteristicas: string[];
   orden: number;
+  /** Precios del plan fijo (compatibilidad con el render actual). */
   precios: CatalogoPrecios;
+  /** Plan de horarios fijos de esta tarjeta. */
+  fijo: CatalogoPlanFijo;
+  /** Variante flexible (PACK), si está disponible. */
+  flexible: CatalogoPlanFlexible | null;
+}
+
+export type DiaSemana =
+  | 'LUNES'
+  | 'MARTES'
+  | 'MIERCOLES'
+  | 'JUEVES'
+  | 'VIERNES'
+  | 'SABADO'
+  | 'DOMINGO';
+
+export interface HorarioFijable {
+  id: number;
+  diaSemana: DiaSemana;
+  horaInicio: string;
+  horaFin: string;
+  actividad: { id: number; nombre: string };
+  cupo: number;
+  cuposAprox: number | null;
+}
+
+export interface HorariosResponse {
+  ingresosPorSemana: number | null;
+  horarios: HorarioFijable[];
+}
+
+export type MedioCheckoutPlan = 'online' | 'debito';
+
+export interface CheckoutPlanPayload {
+  sedeId: number;
+  planId: number;
+  medio: MedioCheckoutPlan;
+  horarioIds?: number[];
+  nombre: string;
+  apellido: string;
+  email: string;
+  telefono: string;
+}
+
+export interface CheckoutPlanResponse {
+  initPoint: string;
+  solicitudId: string;
 }
 
 export interface CatalogoSede {

@@ -251,6 +251,29 @@
   color: var(--surface);
 }
 
+.sede__pill:disabled {
+  opacity: 0.35;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* ===== Day selector strip ===== */
+/* Catorce días no entran en el ancho del container ni en desktop, así que
+   la tira siempre scrollea en horizontal en vez de envolverse. */
+.sede__filters--dias {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  margin-bottom: 16px;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.sede__filters--dias::-webkit-scrollbar {
+  display: none;
+}
+
 .sede__empty-btn {
   display: inline-block;
   margin-top: 18px;

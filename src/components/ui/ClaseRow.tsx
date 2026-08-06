@@ -12,8 +12,8 @@ export function ClaseRow({ clase, sede }: { clase: Clase; sede: Sede }) {
 
   return (
     <Link
-      to={`/reservar/${clase.id}`}
-      state={{ clase, sede }}
+      to={`/sede/${sede.slug}/precios`}
+      state={{ mode: 'prueba', clase }}
       className="clase-row"
       onClick={() =>
         trackEvent('begin_reserva', {
