@@ -464,9 +464,14 @@ export default function Planes() {
         email: form.email.trim(),
         telefono: form.telefono.trim(),
       });
+      // `content_category` lleva el TIPO de venta, no la sede: es el campo por
+      // el que Meta permite armar conversiones personalizadas, y lo que hay que
+      // poder separar es la suscripción de la clase de prueba. La sede va como
+      // propiedad propia, que también sirve para filtrar.
       const params: Record<string, unknown> = {
         content_name: tipoSel.nombre,
-        content_category: sede.nombre,
+        content_category: 'Subscription',
+        sede: sede.nombre,
         currency: 'ARS',
       };
       if (precioCheckout != null) params.value = precioCheckout;
@@ -508,7 +513,8 @@ export default function Planes() {
       const clase = clases.find((c) => c.id === claseId);
       const params: Record<string, unknown> = {
         content_name: clase?.actividad.nombre ?? 'Clase de prueba',
-        content_category: sede.nombre,
+        content_category: 'Trial',
+        sede: sede.nombre,
       };
       if (sede.precioPrueba != null) {
         params.value = sede.precioPrueba;

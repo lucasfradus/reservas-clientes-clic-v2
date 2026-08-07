@@ -87,6 +87,14 @@ export interface ItemVenta {
  * y suelta como `sede`. La primera alimenta los informes de ecommerce; la
  * segunda es la que se puede usar como desglose en una exploración de embudo,
  * porque los parámetros de `items` son de ámbito ítem y ahí no se pueden usar.
+ *
+ * Con el tipo de venta pasa lo mismo y por el mismo motivo: va como
+ * `item_category` dentro de `items` (los informes de Monetización lo cortan
+ * solo) y suelto como `tipo_venta`. Sin la copia suelta no se pueden crear los
+ * eventos derivados `purchase_trial` / `purchase_subscription`, porque la
+ * pantalla "Crear evento" de GA4 solo ofrece parámetros de ámbito evento — y
+ * sin esos eventos derivados no se puede optimizar una campaña hacia
+ * suscripciones sin que le sumen también las clases de prueba.
  */
 export function trackVenta(
   evento: EventoVenta,
@@ -96,6 +104,7 @@ export function trackVenta(
   if (!GA_ID || typeof window.gtag !== 'function') return;
 
   const params: Record<string, unknown> = {
+    tipo_venta: item.categoria,
     items: [
       {
         item_name: item.nombre,

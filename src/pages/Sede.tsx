@@ -77,7 +77,8 @@ export default function Sede() {
     if (state.status !== 'ok') return;
     const params: Record<string, unknown> = {
       content_name: state.sede.nombre,
-      content_category: 'sede',
+      content_category: 'Trial',
+      sede: state.sede.nombre,
     };
     if (state.sede.precioPrueba != null) {
       params.value = state.sede.precioPrueba;

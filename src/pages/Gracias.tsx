@@ -174,7 +174,16 @@ export default function Gracias() {
     const eventId =
       params.get('event_id') || (paymentId ? `prueba-${paymentId}` : undefined);
 
-    const purchaseParams: Record<string, unknown> = { currency };
+    // `content_category` es el campo por el que Meta arma las conversiones
+    // personalizadas: con "Trial" / "Subscription" una campaña puede optimizar
+    // hacia suscripciones sin que le sumen las clases de prueba. Tiene que
+    // coincidir con lo que manda la Conversions API del backend para el mismo
+    // evento, o la conversión personalizada solo matchearía la mitad.
+    const purchaseParams: Record<string, unknown> = {
+      currency,
+      content_category: esPlan ? 'Subscription' : 'Trial',
+    };
+    if (sede) purchaseParams.sede = sede;
     if (precio && Number.isFinite(Number(precio))) {
       purchaseParams.value = Number(precio);
     }
