@@ -61,5 +61,35 @@ Dev local (resuelto):
   para que las llamadas sean same-origin y esquiven CORS. `npm run dev` funciona sin flags.
 
 Pendiente para producción (fuera de alcance de esta etapa):
-- Endpoint público de compra de plan (suscripción + SuscripcionHorario + preferencia MP) para reemplazar el mock del paso 3/4 en modo plan.
+- ~~Endpoint público de compra de plan~~ → hecho: `checkoutPlan()` + `getHorarios()`.
+  El pago del plan ya es real vía Mercado Pago, no queda nada mockeado.
 - Restyle opcional del Header/Footer global para acompañar la estética mobile del prototipo.
+
+---
+
+# La sede tiene una sola pantalla
+
+Rama `feat/sede-home-planes`. Antes había dos: `/sede/:slug` (fotos, contacto y
+grilla de clases) y `/sede/:slug/precios` (planes + checkout). Ahora es una sola,
+en `/sede/:slug`.
+
+- `Planes.tsx` es el home de la sede. Sumó del viejo `Sede.tsx`: el link "ver
+  todas las sedes", el carrusel de fotos en el hero, la descripción, WhatsApp y
+  cómo llegar, la sección "Próximas clases" y la barra fija de mobile.
+- `/sede/:slug/precios` redirige al home, para no romper links viejos (campañas,
+  QR impresos).
+- La grilla salió a `components/ui/GrillaClases.tsx`: mismos filtros cruzados de
+  día y actividad, pero **arranca filtrada en el primer día con clases**. Sin eso
+  la página medía 14.475px (85 clases de 14 días); ahora mide 3.365px. "Todos"
+  sigue en la tira.
+- `ClaseRow` ya no navega: avisa con `onElegir` y el home abre el checkout de
+  prueba en el paso 2 con esa clase elegida. Dejó de ser un `<a>` con un `<button>`
+  adentro (HTML inválido) y pasó a ser un contenedor con `role="button"`.
+- El `view_item` de GA4 y el `ViewContent` de Meta se mudaron a `Planes.tsx`:
+  vivían en la página que se borró y eran la cabecera del embudo.
+- Borrados: `pages/Sede.tsx` y `pages/Sede.css`.
+
+Verificado con datos reales de app.clicpilates.com (sede nunez): `tsc -b` ✅ ·
+`npm run build` ✅ · walkthrough en Chromium 390px y 1280px — hero con carrusel,
+redirect de `/precios`, barra fija, clic en horario → paso 2 "Datos", camino de
+plan → paso 1 "Horarios". Sin errores de consola.

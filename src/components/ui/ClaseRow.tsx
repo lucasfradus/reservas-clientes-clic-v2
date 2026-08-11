@@ -1,33 +1,35 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import type { Clase, Sede } from '../../types';
+import type { Clase } from '../../types';
 import { formatTime } from '../../lib/format';
-import { trackVenta } from '../../lib/analytics';
 import './ClaseRow.css';
 
-export function ClaseRow({ clase, sede }: { clase: Clase; sede: Sede }) {
+interface Props {
+  clase: Clase;
+  /** Tocar la fila abre el checkout de prueba con esta clase ya elegida. La
+   *  página es la que sabe cómo hacerlo (y la que mide el begin_checkout). */
+  onElegir: (clase: Clase) => void;
+}
+
+export function ClaseRow({ clase, onElegir }: Props) {
   const cupos = clase.cuposDisponibles;
   const desc = clase.actividad.descripcion;
   const [open, setOpen] = useState(false);
 
   return (
-    <Link
-      to={`/sede/${sede.slug}/precios`}
-      state={{ mode: 'prueba', clase }}
+    // La fila entera es el control que elige la clase, pero adentro vive el
+    // toggle "+ info": un <button> dentro de otro <button> es HTML inválido,
+    // así que el contenedor se comporta como botón sin serlo.
+    <div
+      role="button"
+      tabIndex={0}
       className="clase-row"
-      onClick={() =>
-        // Este clic ya elige horario y abre el checkout de prueba con la clase
-        // precargada, así que es el begin_checkout de ese camino. El otro
-        // camino (entrar a /precios y tocar "reservar prueba") lo dispara
-        // `elegirPrueba`, y nunca se pasa por los dos.
-        trackVenta('begin_checkout', {
-          nombre: clase.actividad.nombre,
-          categoria: 'Trial',
-          sede: sede.nombre,
-          sedeSlug: sede.slug,
-          precio: sede.precioPrueba,
-        })
-      }
+      onClick={() => onElegir(clase)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onElegir(clase);
+        }
+      }}
     >
       <div className="clase-row__time">{formatTime(clase.inicio)}</div>
       <div className="clase-row__body">
@@ -63,6 +65,6 @@ export function ClaseRow({ clase, sede }: { clase: Clase; sede: Sede }) {
         </span>
       </div>
       <span className="clase-row__arrow" aria-hidden="true">→</span>
-    </Link>
+    </div>
   );
 }

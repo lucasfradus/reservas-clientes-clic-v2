@@ -7,6 +7,9 @@
   border: 1px solid var(--line-soft);
   border-radius: var(--radius-md);
   transition: border-color 0.2s, transform 0.15s, background 0.2s;
+  /* Es un div con role="button" (adentro vive el toggle "+ info"), así que el
+     cursor de mano no viene de serie. */
+  cursor: pointer;
 }
 
 .clase-row + .clase-row {

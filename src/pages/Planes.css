@@ -67,6 +67,19 @@
 }
 
 /* ── Hero ── */
+.planes__back {
+  margin-bottom: 14px;
+}
+.planes__back-link {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: var(--pl-mute);
+}
+.planes__back-link:hover {
+  color: var(--pl-ink);
+}
+
 .planes__hero {
   position: relative;
   margin-top: 12px;
@@ -75,13 +88,54 @@
   background: var(--pl-ink);
   isolation: isolate;
 }
+/* La foto ya no es un fondo detrás del texto: es un carrusel real arriba del
+   cuerpo, para que se pueda swipear entre las fotos del estudio. */
 .planes__hero-media {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  max-height: 300px;
+  background: linear-gradient(135deg, #d8c4ad, #bcac9e);
+}
+/* Funde la base de la foto con el cuerpo oscuro del hero. */
+.planes__hero-media::after {
+  content: '';
   position: absolute;
   inset: 0;
-  background-size: cover;
-  background-position: center;
-  opacity: 0.45;
-  z-index: -1;
+  background: linear-gradient(to top, var(--pl-ink) 0%, transparent 28%);
+  pointer-events: none;
+}
+.planes__hero-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.planes__hero-desc {
+  margin-top: 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.62);
+}
+.planes__hero-links {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+.planes__hero-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  transition: color 0.2s;
+}
+.planes__hero-links a:hover {
+  color: #fff;
 }
 .planes__hero-body {
   position: relative;
@@ -352,6 +406,85 @@
   font-size: 10.5px;
   color: var(--pl-mute);
   flex-wrap: wrap;
+}
+
+/* ── Próximas clases ── */
+.planes__clases {
+  margin-top: 34px;
+}
+.planes__clases-head {
+  text-align: center;
+  padding-bottom: 22px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--pl-line);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.planes__clases-title {
+  font-family: 'Prata', Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  font-size: 26px;
+  color: var(--pl-ink);
+  line-height: 1.1;
+}
+.planes__clases-sub {
+  font-size: 12px;
+  color: var(--pl-mute);
+}
+
+/* ── Barra fija (mobile) ── */
+.planes__sticky {
+  display: none;
+}
+@media (max-width: 640px) {
+  /* Que la barra fija no tape el final de la página. */
+  .planes--landing {
+    padding-bottom: 84px;
+  }
+  .planes__sticky {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 20px 16px;
+    background: var(--pl-surface);
+    border-top: 1px solid var(--pl-line);
+    box-shadow: 0 -8px 24px -8px rgba(35, 34, 43, 0.18);
+  }
+  .planes__sticky-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .planes__sticky-label {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--pl-mute);
+  }
+  .planes__sticky-price {
+    font-family: 'Prata', Georgia, 'Times New Roman', serif;
+    font-size: 20px;
+    color: var(--pl-ink);
+  }
+  .planes__sticky-btn {
+    padding: 12px 24px;
+    background: var(--pl-ink);
+    color: #fff;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
 }
 
 /* ── Recordatorio ── */

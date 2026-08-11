@@ -5,7 +5,7 @@ import {
   useState,
   type FormEvent,
 } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
   ApiError,
   checkout,
@@ -24,6 +24,9 @@ import type {
 } from '../types';
 import { Loading } from '../components/ui/Loading';
 import { ErrorBanner } from '../components/ui/ErrorBanner';
+import { GrillaClases } from '../components/ui/GrillaClases';
+import { SedeGaleria } from '../components/ui/SedeGaleria';
+import { Iso } from '../components/brand/Iso';
 import {
   dayKey,
   formatDayShort,
@@ -35,8 +38,9 @@ import { trackMetaEvent } from '../lib/meta';
 import './Planes.css';
 
 /**
- * Landing de planes + checkout. Port del prototipo de Claude Design
- * "CLIC Landing planes". Reemplaza las páginas Precios y Reservar.
+ * Home de la sede: landing de planes + grilla de clases + checkout. Port del
+ * prototipo de Claude Design "CLIC Landing planes". Reemplaza las páginas
+ * Precios, Reservar y Sede: es todo lo que hay en `/sede/:slug`.
  *
  * Dos caminos comparten la misma UI de checkout (`mode`):
  *  - 'prueba' → elegís UNA clase real y el pago es REAL vía checkout() → MP.
@@ -72,11 +76,6 @@ type HorariosState =
   | { status: 'loading' }
   | { status: 'error' }
   | { status: 'ok'; horarios: HorarioFijable[] };
-
-interface LocationState {
-  mode?: Mode;
-  clase?: Clase;
-}
 
 const DIA_INFO: Record<DiaSemana, { corto: string; orden: number }> = {
   LUNES: { corto: 'Lun', orden: 0 },
@@ -130,9 +129,12 @@ function validate(form: {
 
 export default function Planes() {
   const { slug } = useParams<{ slug: string }>();
-  const location = useLocation();
-  const preload = (location.state ?? {}) as LocationState;
   const planesRef = useRef<HTMLDivElement>(null);
+  const clasesRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLElement>(null);
+  // Barra fija de mobile: aparece cuando el hero (con su CTA y su precio) se
+  // fue de pantalla, y solo en la landing.
+  const [showSticky, setShowSticky] = useState(false);
 
   const [load, setLoad] = useState<LoadState>({ status: 'loading' });
 
@@ -200,20 +202,14 @@ export default function Planes() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(cargar, [slug]);
 
-  // Si llegan con una clase preseleccionada (desde el listado de la sede),
-  // abrimos directo el checkout de prueba en el paso de datos.
-  const preloadApplied = useRef(false);
   useEffect(() => {
-    if (preloadApplied.current || load.status !== 'ok') return;
-    if (preload.mode === 'prueba' && preload.clase) {
-      preloadApplied.current = true;
-      setMode('prueba');
-      setScreen('checkout');
-      setDia(dayKey(preload.clase.inicio));
-      setSel([String(preload.clase.id)]);
-      setStep(2);
-    }
-  }, [load.status, preload.mode, preload.clase]);
+    const onScroll = () => {
+      const hero = heroRef.current;
+      if (hero) setShowSticky(hero.getBoundingClientRect().bottom < 0);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   // ── Derivados ─────────────────────────────────────────────────────────
   const tipos = load.status === 'ok' ? load.tipos : [];
@@ -225,6 +221,28 @@ export default function Planes() {
   useEffect(() => {
     if (!sede) return;
     trackEvent('view_planes', { sede: sede.nombre, sede_slug: sede.slug });
+
+    // Vista de la sede (contenido + oferta). Abre el embudo de ecommerce de
+    // GA4 (view_item → begin_checkout → add_payment_info → purchase) y su
+    // equivalente en Meta. Vivía en la página de sede, que ahora es esta.
+    const params: Record<string, unknown> = {
+      content_name: sede.nombre,
+      content_category: 'Trial',
+      sede: sede.nombre,
+    };
+    if (sede.precioPrueba != null) {
+      params.value = sede.precioPrueba;
+      params.currency = 'ARS';
+    }
+    trackMetaEvent('ViewContent', params, undefined, sede.slug);
+
+    trackVenta('view_item', {
+      nombre: `Clase de prueba - ${sede.nombre}`,
+      categoria: 'Trial',
+      sede: sede.nombre,
+      sedeSlug: sede.slug,
+      precio: sede.precioPrueba,
+    });
   }, [sede]);
 
   const frecuenciasDisponibles = useMemo(
@@ -358,6 +376,27 @@ export default function Planes() {
     setScreen('checkout');
     trackVenta('begin_checkout', {
       nombre: 'Clase de prueba',
+      categoria: 'Trial',
+      sede: sede?.nombre,
+      sedeSlug: sede?.slug ?? slug,
+      precio: sede?.precioPrueba,
+    });
+    scrollTop();
+  };
+
+  // Desde la grilla de próximas clases: la clase ya está elegida, así que se
+  // saltea el paso 1 y se entra directo a los datos. Es el begin_checkout de
+  // ese camino; el otro (el CTA del hero) lo dispara `abrirPrueba`, y nunca se
+  // pasa por los dos.
+  const abrirPruebaConClase = (clase: Clase) => {
+    setMode('prueba');
+    setModalidad(null);
+    setDia(dayKey(clase.inicio));
+    setSel([String(clase.id)]);
+    setStep(2);
+    setScreen('checkout');
+    trackVenta('begin_checkout', {
+      nombre: clase.actividad.nombre,
       categoria: 'Trial',
       sede: sede?.nombre,
       sedeSlug: sede?.slug ?? slug,
@@ -574,27 +613,45 @@ export default function Planes() {
     );
   }
 
-  const heroImg = sede?.imagenUrl ?? sede?.fotos[0] ?? null;
+  // La imagen de cabecera abre el carrusel y la galería la continúa. Set
+  // dedupe por si el estudio subió la misma foto en ambos lados.
+  const heroImages = sede
+    ? Array.from(new Set([...(sede.imagenUrl ? [sede.imagenUrl] : []), ...sede.fotos]))
+    : [];
 
   // ══════════════════════════════ LANDING ══════════════════════════════
   if (screen === 'landing') {
     return (
-      <div className="planes">
+      <div className="planes planes--landing">
+        <div className="planes__back">
+          <Link to="/" className="planes__back-link">
+            ← Ver todas las sedes
+          </Link>
+        </div>
+
         {/* Hero: clase de prueba */}
-        <section className="planes__hero">
-          {heroImg && (
-            <div
-              className="planes__hero-media"
-              style={{ backgroundImage: `url(${heroImg})` }}
-              aria-hidden="true"
+        <section className="planes__hero" ref={heroRef}>
+          <div className="planes__hero-media">
+            <SedeGaleria
+              key={sede?.id}
+              images={heroImages}
+              sedeNombre={sede?.nombre ?? ''}
+              fallback={
+                <div className="planes__hero-fallback">
+                  <Iso variant="white" size={72} />
+                </div>
+              }
             />
-          )}
+          </div>
           <div className="planes__hero-body">
             <span className="planes__eyebrow planes__eyebrow--light">
               {sede?.ciudad}
             </span>
             <h1 className="planes__hero-name">{sede?.nombre}</h1>
             <p className="planes__hero-addr">{sede?.direccion}</p>
+            {sede?.descripcion && (
+              <p className="planes__hero-desc">{sede.descripcion}</p>
+            )}
 
             <span className="planes__eyebrow planes__eyebrow--light planes__hero-gap">
               Tu primera clase
@@ -618,6 +675,27 @@ export default function Planes() {
             >
               Ya entreno reformer → ver planes
             </button>
+
+            {(sede?.whatsappUrl || sede?.googleMapsUrl) && (
+              <div className="planes__hero-links">
+                {sede?.whatsappUrl && (
+                  <a href={sede.whatsappUrl} target="_blank" rel="noreferrer">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                    </svg>
+                    WhatsApp
+                  </a>
+                )}
+                {sede?.googleMapsUrl && (
+                  <a href={sede.googleMapsUrl} target="_blank" rel="noreferrer">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z" />
+                    </svg>
+                    Cómo llegar
+                  </a>
+                )}
+              </div>
+            )}
           </div>
         </section>
 
@@ -734,6 +812,19 @@ export default function Planes() {
           <span>Vence a los 30 días</span>
         </div>
 
+        {/* Próximas clases: la agenda real de la sede. Tocar un horario abre
+            el checkout de prueba con esa clase ya elegida. */}
+        <section className="planes__clases" ref={clasesRef}>
+          <div className="planes__clases-head">
+            <span className="planes__eyebrow">It's pilates time</span>
+            <h2 className="planes__clases-title">Próximas clases</h2>
+            <p className="planes__clases-sub">
+              Tocá un horario para reservar tu clase de prueba.
+            </p>
+          </div>
+          <GrillaClases clases={clases} onElegir={abrirPruebaConClase} />
+        </section>
+
         {/* Recordatorio prueba */}
         <div className="planes__reminder">
           ¿Primera vez en reformer?{' '}
@@ -742,6 +833,24 @@ export default function Planes() {
           </button>{' '}
           — si te quedás, se descuenta de tu plan.
         </div>
+
+        {showSticky && (
+          <div className="planes__sticky">
+            <div className="planes__sticky-info">
+              <span className="planes__sticky-label">Clase de prueba</span>
+              <span className="planes__sticky-price">
+                {formatPrice(sede?.precioPrueba)}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="planes__sticky-btn"
+              onClick={abrirPrueba}
+            >
+              Reservar
+            </button>
+          </div>
+        )}
       </div>
     );
   }
