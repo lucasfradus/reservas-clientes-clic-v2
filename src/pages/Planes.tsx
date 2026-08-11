@@ -662,9 +662,9 @@ export default function Planes() {
 
         {/* Encabezado planes */}
         <div ref={planesRef} className="planes__intro">
-          <h2 className="planes__intro-title">Tu lugar en el reformer, todo el mes</h2>
+          <h2 className="planes__intro-title">Elegí cómo querés vivir CLIC</h2>
           <p className="planes__intro-sub">
-            Elegí tu ritmo y empezá esta semana. Pagás online y reservás tus
+            Encontrá el plan que mejor se adapte a tu rutina y reservá tus
             clases desde la app.
           </p>
         </div>
