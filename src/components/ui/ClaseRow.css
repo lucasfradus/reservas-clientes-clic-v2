@@ -1,7 +1,12 @@
 .clase-row {
   display: flex;
   align-items: center;
-  gap: 20px;
+  /* La descripción es el cuarto hijo y baja a su propio renglón. Sin row-gap:
+     el aire entre renglones lo ponen los propios bloques, así la fila cerrada
+     no arrastra un hueco vacío. */
+  flex-wrap: wrap;
+  column-gap: 20px;
+  row-gap: 0;
   padding: 18px 22px;
   background: var(--surface);
   border: 1px solid var(--line-soft);
@@ -77,7 +82,11 @@
   color: var(--surface);
 }
 
+/* Ocupa el renglón entero de la fila, debajo de hora / clase / cupo. Cerrada
+   mide cero: el aire lo pone el padding del texto, que queda clipeado. */
 .clase-row__desc-wrap {
+  flex: 0 0 100%;
+  order: 4;
   display: grid;
   grid-template-rows: 0fr;
   transition: grid-template-rows 0.3s ease;
@@ -85,6 +94,20 @@
 
 .clase-row__desc-wrap--open {
   grid-template-rows: 1fr;
+}
+
+/* Abierta, la descripción necesita el ancho completo, así que el botón de
+   reservar baja a su propio renglón en vez de convivir apretado al costado. */
+.clase-row--open .clase-row__cupos {
+  order: 5;
+  flex: 0 0 100%;
+  justify-content: center;
+  margin-top: 14px;
+  padding: 11px 16px;
+}
+
+.clase-row--open .clase-row__arrow {
+  display: none;
 }
 
 .clase-row__desc-inner {
@@ -152,7 +175,7 @@
 
 @media (max-width: 640px) {
   .clase-row {
-    gap: 14px;
+    column-gap: 14px;
     padding: 14px 16px;
   }
   .clase-row__time {

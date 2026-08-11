@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Clase } from '../../types';
-import { formatTime } from '../../lib/format';
+import { formatTime, nombreConInicial } from '../../lib/format';
 import './ClaseRow.css';
 
 interface Props {
@@ -13,6 +13,7 @@ interface Props {
 export function ClaseRow({ clase, onElegir }: Props) {
   const cupos = clase.cuposDisponibles;
   const desc = clase.actividad.descripcion;
+  const profe = nombreConInicial(clase.instructor);
   const [open, setOpen] = useState(false);
 
   return (
@@ -22,7 +23,7 @@ export function ClaseRow({ clase, onElegir }: Props) {
     <div
       role="button"
       tabIndex={0}
-      className="clase-row"
+      className={`clase-row${open ? ' clase-row--open' : ''}`}
       onClick={() => onElegir(clase)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -47,16 +48,8 @@ export function ClaseRow({ clase, onElegir }: Props) {
             {open ? '− info' : '+ info'}
           </button>
         )}
-        {desc && (
-          <div className={`clase-row__desc-wrap${open ? ' clase-row__desc-wrap--open' : ''}`}>
-            <div className="clase-row__desc-inner">
-              <p className="clase-row__desc">{desc}</p>
-            </div>
-          </div>
-        )}
         <p className="clase-row__meta">
-          {clase.instructor ? `con ${clase.instructor}` : 'Instructora a confirmar'}
-          {clase.salon ? ` · ${clase.salon.nombre}` : ''}
+          {profe ? `con ${profe}` : 'Instructora a confirmar'}
         </p>
       </div>
       <div className={`clase-row__cupos${cupos === 0 ? ' clase-row__cupos--agotado' : ''}`}>
@@ -65,6 +58,21 @@ export function ClaseRow({ clase, onElegir }: Props) {
         </span>
       </div>
       <span className="clase-row__arrow" aria-hidden="true">→</span>
+      {/* La descripción es hermana del cuerpo, no hija: abierta ocupa el ancho
+          completo de la fila y empuja el botón de reservar abajo, en vez de
+          apretarse en la columna del medio. */}
+      {desc && (
+        <div
+          className={`clase-row__desc-wrap${open ? ' clase-row__desc-wrap--open' : ''}`}
+          // Leer la descripción no es querer reservar: sin esto, tocar el
+          // texto que se acaba de abrir manda al paso de datos.
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="clase-row__desc-inner">
+            <p className="clase-row__desc">{desc}</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

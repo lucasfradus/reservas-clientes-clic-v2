@@ -81,3 +81,21 @@ export function dayKey(iso: string): string {
   const day = parts.find((p) => p.type === 'day')?.value ?? '';
   return `${y}-${m}-${day}`;
 }
+
+/**
+ * Nombre de pila + inicial del apellido: "Estefania Rojas" → "Estefania R.".
+ * El apellido completo de la profesora no le suma nada a quien reserva, y en
+ * mobile empuja la fila a dos renglones.
+ *
+ * Se toma la última palabra como apellido (y no la segunda) porque los nombres
+ * compuestos son más frecuentes que los apellidos dobles: "Ana Maria Perez"
+ * tiene que dar "Ana P.", no "Ana M.".
+ */
+export function nombreConInicial(nombre: string | null | undefined): string | null {
+  if (!nombre) return null;
+  const partes = nombre.trim().split(/\s+/).filter(Boolean);
+  if (partes.length === 0) return null;
+  if (partes.length === 1) return partes[0];
+  const apellido = partes[partes.length - 1];
+  return `${partes[0]} ${apellido.charAt(0).toUpperCase()}.`;
+}
