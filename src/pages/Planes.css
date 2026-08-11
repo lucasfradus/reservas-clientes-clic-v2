@@ -67,41 +67,40 @@
 }
 
 /* ── Hero ── */
-.planes__back {
-  margin-bottom: 14px;
-}
-.planes__back-link {
-  font-size: 11px;
-  font-weight: 500;
-  letter-spacing: 0.5px;
-  color: var(--pl-mute);
-}
-.planes__back-link:hover {
-  color: var(--pl-ink);
-}
-
+/* El hero ocupa la pantalla entera: se come el padding superior de .page y el
+   lateral de la columna, así llega a los bordes. `dvh` (y no `vh`) para que la
+   barra del navegador de mobile no le recorte el CTA. */
 .planes__hero {
   position: relative;
-  margin-top: 12px;
-  border-radius: 20px;
+  margin: -32px -16px 0;
+  min-height: calc(100dvh - 60px); /* 60px = alto del header en mobile */
   overflow: hidden;
   background: var(--pl-ink);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
   isolation: isolate;
 }
-/* La foto ya no es un fondo detrás del texto: es un carrusel real arriba del
-   cuerpo, para que se pueda swipear entre las fotos del estudio. */
+/* La foto es el fondo del hero entero. El cuerpo se apoya abajo, así queda
+   libre la mitad de arriba para swipear entre las fotos del estudio. */
 .planes__hero-media {
-  position: relative;
-  aspect-ratio: 4 / 3;
-  max-height: 300px;
+  position: absolute;
+  inset: 0;
   background: linear-gradient(135deg, #d8c4ad, #bcac9e);
 }
-/* Funde la base de la foto con el cuerpo oscuro del hero. */
+/* Sostiene la legibilidad del texto sobre cualquier foto. */
 .planes__hero-media::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(to top, var(--pl-ink) 0%, transparent 28%);
+  background: linear-gradient(
+    to top,
+    var(--pl-ink) 0%,
+    rgba(35, 34, 43, 0.92) 38%,
+    rgba(35, 34, 43, 0.55) 58%,
+    rgba(35, 34, 43, 0.12) 80%,
+    rgba(35, 34, 43, 0.3) 100%
+  );
   pointer-events: none;
 }
 .planes__hero-fallback {
@@ -111,11 +110,38 @@
   align-items: center;
   justify-content: center;
 }
-.planes__hero-desc {
-  margin-top: 12px;
+.planes__back-link {
+  position: absolute;
+  top: 16px;
+  left: 20px;
+  z-index: 2;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 0 1px 8px rgba(35, 34, 43, 0.5);
+}
+.planes__back-link:hover {
+  color: #fff;
+}
+/* Localidad y dirección en un solo renglón. */
+.planes__hero-place {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
   font-size: 12px;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.62);
+  color: rgba(255, 255, 255, 0.75);
+  min-width: 0;
+}
+.planes__hero-city {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.planes__hero-dot {
+  color: rgba(255, 255, 255, 0.45);
 }
 .planes__hero-links {
   margin-top: 18px;
@@ -139,10 +165,18 @@
 }
 .planes__hero-body {
   position: relative;
-  padding: 28px 22px 24px;
+  padding: 28px 22px 32px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+/* En desktop el header y el aire de la página son más altos. */
+@media (min-width: 769px) {
+  .planes__hero {
+    margin-top: -48px;
+    min-height: calc(100dvh - 72px);
+  }
 }
 .planes__hero-name {
   font-size: 32px;

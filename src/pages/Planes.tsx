@@ -623,13 +623,8 @@ export default function Planes() {
   if (screen === 'landing') {
     return (
       <div className="planes planes--landing">
-        <div className="planes__back">
-          <Link to="/" className="planes__back-link">
-            ← Ver todas las sedes
-          </Link>
-        </div>
-
-        {/* Hero: clase de prueba */}
+        {/* Hero: ocupa la pantalla entera. La galería es el fondo y el cuerpo
+            se apoya abajo, sobre el degradado. */}
         <section className="planes__hero" ref={heroRef}>
           <div className="planes__hero-media">
             <SedeGaleria
@@ -643,18 +638,19 @@ export default function Planes() {
               }
             />
           </div>
+          <Link to="/" className="planes__back-link">
+            ← Ver todas las sedes
+          </Link>
           <div className="planes__hero-body">
-            <span className="planes__eyebrow planes__eyebrow--light">
-              {sede?.ciudad}
-            </span>
+            <p className="planes__hero-place">
+              <span className="planes__hero-city">{sede?.ciudad}</span>
+              <span className="planes__hero-dot" aria-hidden="true">·</span>
+              {sede?.direccion}
+            </p>
             <h1 className="planes__hero-name">{sede?.nombre}</h1>
-            <p className="planes__hero-addr">{sede?.direccion}</p>
-            {sede?.descripcion && (
-              <p className="planes__hero-desc">{sede.descripcion}</p>
-            )}
 
             <span className="planes__eyebrow planes__eyebrow--light planes__hero-gap">
-              Tu primera clase
+              Tu clase de prueba en CLIC
             </span>
             <p className="planes__hero-price">{formatPrice(sede?.precioPrueba)}</p>
             <p className="planes__hero-note">
