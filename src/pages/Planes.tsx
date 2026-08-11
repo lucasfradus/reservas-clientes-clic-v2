@@ -260,11 +260,14 @@ export default function Planes() {
     [tipos, periodo],
   );
 
+  // Solo las características de los planes que se están mostrando: si se
+  // juntan todas, con "Mensual" elegido el checklist dice "Vence a los 30
+  // días" y "Vence a los 90 días" al mismo tiempo.
   const beneficios = useMemo(() => {
     const set = new Set<string>();
-    for (const t of tipos) for (const c of t.caracteristicas) set.add(c);
+    for (const t of planes) for (const c of t.caracteristicas) set.add(c);
     return set.size > 0 ? Array.from(set).slice(0, 6) : BENEFICIOS_FALLBACK;
-  }, [tipos]);
+  }, [planes]);
 
   const tipoSel = useMemo(
     () => tipos.find((t) => t.id === tipoId) ?? null,
@@ -298,6 +301,24 @@ export default function Planes() {
     if (dia && diasChips.some((d) => d.key === dia)) return;
     if (diasChips.length > 0) setDia(diasChips[0].key);
   }, [screen, step, mode, modalidad, dia, diasChips]);
+
+  // Grilla semanal de la sede: los mismos horarios agrupados por día. Es lo
+  // que se muestra como referencia en el pack flexible.
+  const grillaSemanal = useMemo(() => {
+    const map = new Map<DiaSemana, string[]>();
+    for (const h of horariosData) {
+      const arr = map.get(h.diaSemana) ?? [];
+      arr.push(hhmm(h.horaInicio));
+      map.set(h.diaSemana, arr);
+    }
+    return Array.from(map.entries())
+      .sort(([a], [b]) => DIA_INFO[a].orden - DIA_INFO[b].orden)
+      .map(([diaSemana, horas]) => ({
+        diaSemana,
+        label: DIA_INFO[diaSemana].corto,
+        horas: Array.from(new Set(horas)).sort(),
+      }));
+  }, [horariosData]);
 
   // Slots del día activo.
   const slots = useMemo(
@@ -386,9 +407,11 @@ export default function Planes() {
     scrollTop();
   };
 
-  // Cargar los horarios fijables reales al elegir "horarios fijos".
+  // Cargar los horarios reales de la sede al elegir modalidad. En "fijo" son
+  // los que se eligen; en "flexible" se muestran nada más como referencia de
+  // la grilla, para saber si los horarios de la sede te sirven.
   useEffect(() => {
-    if (mode !== 'plan' || modalidad !== 'fijo' || !tipoSel || !sede) return;
+    if (mode !== 'plan' || modalidad == null || !tipoSel || !sede) return;
     let cancelado = false;
     setHorarios({ status: 'loading' });
     getHorarios(sede.id, tipoSel.fijo.planId)
@@ -991,16 +1014,47 @@ export default function Planes() {
             </div>
           )}
 
-          {/* Pack flexible: sin horarios fijos, confirma y sigue */}
+          {/* Pack flexible: no hay horarios que elegir, pero sí una duda que
+              resolver antes de pagar — si la grilla de la sede te sirve. */}
           {mode === 'plan' && flex && (
             <div className="planes__grid-wrap">
-              <div className="planes__flex-info">
-                <p className="planes__flex-title">Pack flexible</p>
-                <p className="planes__flex-desc">
-                  Reservás tus clases cada semana desde la app, según tu
-                  disponibilidad. Sin horario fijo asignado.
-                </p>
-              </div>
+              <details className="planes__grilla">
+                <summary className="planes__grilla-sum">
+                  Ver grilla horaria
+                </summary>
+                <div className="planes__grilla-body">
+                  {horarios.status === 'loading' ? (
+                    <Loading label="Cargando horarios" />
+                  ) : horarios.status === 'error' || grillaSemanal.length === 0 ? (
+                    <p className="planes__grilla-nota">
+                      No pudimos cargar la grilla. Escribinos por WhatsApp y te
+                      la pasamos.
+                    </p>
+                  ) : (
+                    <>
+                      {grillaSemanal.map((d) => (
+                        <div key={d.diaSemana} className="planes__grilla-dia">
+                          <span className="planes__grilla-dia-lbl">
+                            {d.label}
+                          </span>
+                          <div className="planes__grilla-horas">
+                            {d.horas.map((h) => (
+                              <span key={h} className="planes__grilla-hora">
+                                {h}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      <p className="planes__grilla-nota">
+                        Es la grilla de la sede, a modo de referencia. Con el
+                        pack flexible reservás cada clase desde la app según la
+                        disponibilidad del momento.
+                      </p>
+                    </>
+                  )}
+                </div>
+              </details>
               <button
                 type="button"
                 className="planes__co-cta"
