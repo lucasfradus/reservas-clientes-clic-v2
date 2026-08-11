@@ -712,9 +712,6 @@ export default function Planes() {
                 ) : null,
               )}
             </div>
-            <p className="planes__toggle-note">
-              Precios pagando con efectivo o transferencia · {sede?.nombre}
-            </p>
           </div>
         )}
 

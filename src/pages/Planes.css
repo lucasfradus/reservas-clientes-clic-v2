@@ -302,12 +302,6 @@
   font-weight: 700;
   text-transform: uppercase;
 }
-.planes__toggle-note {
-  text-align: center;
-  font-size: 10.5px;
-  color: var(--pl-mute);
-  margin-top: 8px;
-}
 
 /* ── Cards ── */
 .planes__cards {
