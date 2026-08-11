@@ -627,7 +627,7 @@ export default function Planes() {
               className="planes__hero-link"
               onClick={scrollToPlanes}
             >
-              Ya entreno reformer → ver planes
+              Ver planes → Quiero adquirir mi membresía
             </button>
 
             {(sede?.whatsappUrl || sede?.googleMapsUrl) && (

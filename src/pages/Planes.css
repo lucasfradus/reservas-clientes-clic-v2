@@ -1,5 +1,6 @@
 /* Landing de planes + checkout. Estética del prototipo "CLIC Landing planes":
-   columna mobile centrada, Prata para títulos/precios, paleta taupe + ink. */
+   columna mobile centrada, Prata para los títulos editoriales, Poppins light
+   para el nombre de la sede y los importes, paleta taupe + ink. */
 .planes {
   --pl-ink: #23222b;
   --pl-soft: #55534e;
@@ -21,21 +22,29 @@
   padding-top: 8px;
 }
 
+/* Prata queda para los títulos editoriales. */
 .pl-serif,
-.planes__hero-name,
-.planes__hero-price,
 .planes__intro-title,
 .planes__card-name,
-.planes__card-price,
 .planes__co-title,
 .planes__grid-title,
 .planes__summary-plan,
-.planes__summary-total-val,
 .planes__success-title,
 .planes__success-first {
   font-family: 'Prata', Georgia, 'Times New Roman', serif;
   font-weight: 400;
   letter-spacing: 0;
+}
+
+/* El nombre de la sede y los importes van en Poppins light, igual que el resto
+   de los números de la marca. */
+.planes__hero-name,
+.planes__hero-price,
+.planes__card-price,
+.planes__summary-total-val {
+  font-family: var(--font-sans);
+  font-weight: 300;
+  letter-spacing: -0.6px;
 }
 
 .planes__eyebrow {
@@ -149,7 +158,8 @@
   border-top: 1px solid rgba(255, 255, 255, 0.12);
   display: flex;
   align-items: center;
-  gap: 18px;
+  justify-content: center;
+  gap: 32px;
   flex-wrap: wrap;
 }
 .planes__hero-links a {
@@ -484,7 +494,9 @@
     color: var(--pl-mute);
   }
   .planes__sticky-price {
-    font-family: 'Prata', Georgia, 'Times New Roman', serif;
+    font-family: var(--font-sans);
+    font-weight: 300;
+    letter-spacing: -0.6px;
     font-size: 20px;
     color: var(--pl-ink);
   }
