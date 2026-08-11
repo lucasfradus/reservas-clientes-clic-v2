@@ -27,12 +27,7 @@ import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { GrillaClases } from '../components/ui/GrillaClases';
 import { SedeGaleria } from '../components/ui/SedeGaleria';
 import { Iso } from '../components/brand/Iso';
-import {
-  dayKey,
-  formatDayShort,
-  formatPrice,
-  formatTime,
-} from '../lib/format';
+import { formatDayShort, formatPrice, formatTime } from '../lib/format';
 import { trackEvent, trackVenta } from '../lib/analytics';
 import { trackMetaEvent } from '../lib/meta';
 import './Planes.css';
@@ -130,7 +125,6 @@ function validate(form: {
 export default function Planes() {
   const { slug } = useParams<{ slug: string }>();
   const planesRef = useRef<HTMLDivElement>(null);
-  const clasesRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLElement>(null);
   // Barra fija de mobile: aparece cuando el hero (con su CTA y su precio) se
   // fue de pantalla, y solo en la landing.
@@ -278,8 +272,9 @@ export default function Planes() {
   );
 
   const flex = modalidad === 'flex';
-  const necesarios =
-    mode === 'prueba' ? 1 : flex ? 0 : tipoSel?.fijo.ingresosPorSemana ?? 1;
+  // Horarios fijos que pide el plan elegido. En modo prueba no aplica: la
+  // clase se elige tocándola en la grilla.
+  const necesarios = flex ? 0 : tipoSel?.fijo.ingresosPorSemana ?? 1;
 
   const horariosData = horarios.status === 'ok' ? horarios.horarios : [];
   const horarioPorId = useMemo(() => {
@@ -288,58 +283,34 @@ export default function Planes() {
     return m;
   }, [horariosData]);
 
-  // Clases reales por día (modo prueba).
-  const clasesPorDia = useMemo(() => {
-    const map = new Map<string, Clase[]>();
-    for (const c of clases) {
-      const k = dayKey(c.inicio);
-      const arr = map.get(k) ?? [];
-      arr.push(c);
-      map.set(k, arr);
-    }
-    return map;
-  }, [clases]);
-
-  // Días para las chips: prueba → días reales con clases; plan-fijo → días de la
-  // semana con horarios fijables.
+  // Días de la semana con horarios fijables (solo plan-fijo).
   const diasChips = useMemo(() => {
-    if (mode === 'prueba') {
-      return Array.from(clasesPorDia.keys())
-        .sort()
-        .map((k) => ({ key: k, label: formatDayShort(clasesPorDia.get(k)![0].inicio) }));
-    }
     const dias = Array.from(new Set(horariosData.map((h) => h.diaSemana)));
     return dias
       .sort((a, b) => DIA_INFO[a].orden - DIA_INFO[b].orden)
       .map((d) => ({ key: d as string, label: DIA_INFO[d].corto }));
-  }, [mode, clasesPorDia, horariosData]);
+  }, [horariosData]);
 
-  // Fijar el día activo cuando aparece la grilla.
+  // Fijar el día activo cuando aparece la grilla de horarios fijos.
   useEffect(() => {
     if (screen !== 'checkout' || step !== 1) return;
-    if (mode === 'plan' && modalidad !== 'fijo') return;
+    if (mode !== 'plan' || modalidad !== 'fijo') return;
     if (dia && diasChips.some((d) => d.key === dia)) return;
     if (diasChips.length > 0) setDia(diasChips[0].key);
   }, [screen, step, mode, modalidad, dia, diasChips]);
 
   // Slots del día activo.
-  const slots = useMemo(() => {
-    if (mode === 'prueba') {
-      const arr = clasesPorDia.get(dia) ?? [];
-      return arr.map((c) => ({
-        key: String(c.id),
-        hora: formatTime(c.inicio),
-        cupos: c.cuposDisponibles,
-      }));
-    }
-    return horariosData
-      .filter((h) => (h.diaSemana as string) === dia)
-      .map((h) => ({
-        key: String(h.id),
-        hora: hhmm(h.horaInicio),
-        cupos: h.cuposAprox ?? h.cupo,
-      }));
-  }, [mode, dia, clasesPorDia, horariosData]);
+  const slots = useMemo(
+    () =>
+      horariosData
+        .filter((h) => (h.diaSemana as string) === dia)
+        .map((h) => ({
+          key: String(h.id),
+          hora: hhmm(h.horaInicio),
+          cupos: h.cuposAprox ?? h.cupo,
+        })),
+    [dia, horariosData],
+  );
 
   const labelDeSel = (key: string): string => {
     if (mode === 'prueba') {
@@ -352,7 +323,6 @@ export default function Planes() {
 
   const toggleSlot = (key: string) => {
     setSel((cur) => {
-      if (mode === 'prueba') return cur.includes(key) ? [] : [key];
       if (cur.includes(key)) return cur.filter((k) => k !== key);
       if (cur.length < necesarios) return [...cur, key];
       return [...cur.slice(0, -1), key]; // reemplaza el último
@@ -384,24 +354,12 @@ export default function Planes() {
     scrollTop();
   };
 
-  // Desde la grilla de próximas clases: la clase ya está elegida, así que se
-  // saltea el paso 1 y se entra directo a los datos. Es el begin_checkout de
-  // ese camino; el otro (el CTA del hero) lo dispara `abrirPrueba`, y nunca se
-  // pasa por los dos.
-  const abrirPruebaConClase = (clase: Clase) => {
-    setMode('prueba');
-    setModalidad(null);
-    setDia(dayKey(clase.inicio));
+  // Tocar una clase en la grilla del paso 1 la elige y pasa a los datos. No
+  // mide nada: el begin_checkout ya salió al abrir el checkout (`abrirPrueba`),
+  // que es el único camino para llegar hasta acá.
+  const elegirClasePrueba = (clase: Clase) => {
     setSel([String(clase.id)]);
     setStep(2);
-    setScreen('checkout');
-    trackVenta('begin_checkout', {
-      nombre: clase.actividad.nombre,
-      categoria: 'Trial',
-      sede: sede?.nombre,
-      sedeSlug: sede?.slug ?? slug,
-      precio: sede?.precioPrueba,
-    });
     scrollTop();
   };
 
@@ -808,19 +766,6 @@ export default function Planes() {
           <span>Vence a los 30 días</span>
         </div>
 
-        {/* Próximas clases: la agenda real de la sede. Tocar un horario abre
-            el checkout de prueba con esa clase ya elegida. */}
-        <section className="planes__clases" ref={clasesRef}>
-          <div className="planes__clases-head">
-            <span className="planes__eyebrow">It's pilates time</span>
-            <h2 className="planes__clases-title">Próximas clases</h2>
-            <p className="planes__clases-sub">
-              Tocá un horario para reservar tu clase de prueba.
-            </p>
-          </div>
-          <GrillaClases clases={clases} onElegir={abrirPruebaConClase} />
-        </section>
-
         {/* Recordatorio prueba */}
         <div className="planes__reminder">
           ¿Primera vez en reformer?{' '}
@@ -927,31 +872,37 @@ export default function Planes() {
             </>
           )}
 
+          {/* Prueba: la agenda real de la sede, con sus filtros. Tocar una
+              clase la elige y pasa a los datos — no hay paso intermedio. */}
           {mode === 'prueba' && (
-            <h2 className="planes__co-title">Elegí tu clase de prueba</h2>
+            <>
+              <h2 className="planes__co-title">Elegí tu clase de prueba</h2>
+              <p className="planes__co-sub">
+                Cupos reales de los próximos 14 días.
+              </p>
+              <div className="planes__co-grilla">
+                <GrillaClases clases={clases} onElegir={elegirClasePrueba} />
+              </div>
+            </>
           )}
 
-          {/* Grilla de horarios (prueba o plan con horarios fijos) */}
-          {(mode === 'prueba' || (mode === 'plan' && modalidad === 'fijo')) && (
+          {/* Grilla de horarios recurrentes (plan con horarios fijos) */}
+          {mode === 'plan' && modalidad === 'fijo' && (
             <div className="planes__grid-wrap">
               <div className="planes__grid-head">
                 <h3 className="planes__grid-title">
-                  {mode === 'prueba'
-                    ? 'Días con lugar'
-                    : necesarios === 1
-                      ? 'Elegí tu horario fijo'
-                      : `Elegí tus ${necesarios} horarios fijos`}
+                  {necesarios === 1
+                    ? 'Elegí tu horario fijo'
+                    : `Elegí tus ${necesarios} horarios fijos`}
                 </h3>
                 <p className="planes__grid-sub">
-                  {mode === 'prueba'
-                    ? 'Cupos reales de los próximos 14 días.'
-                    : 'Van a ser tus clases de cada semana. Mismo grupo, mismo profe.'}
+                  Van a ser tus clases de cada semana. Mismo grupo, mismo profe.
                 </p>
               </div>
 
-              {mode === 'plan' && horarios.status === 'loading' ? (
+              {horarios.status === 'loading' ? (
                 <Loading label="Cargando horarios" />
-              ) : mode === 'plan' && horarios.status === 'error' ? (
+              ) : horarios.status === 'error' ? (
                 <div className="planes__empty planes__empty--soft">
                   <p>No pudimos cargar los horarios. Probá de nuevo.</p>
                 </div>
@@ -964,10 +915,8 @@ export default function Planes() {
                   <div className="planes__days">
                     {diasChips.map((d) => {
                       const active = d.key === dia;
-                      const tieneSel = sel.some((k) =>
-                        mode === 'prueba'
-                          ? clasesPorDia.get(d.key)?.some((c) => String(c.id) === k)
-                          : horarioPorId.get(k)?.diaSemana === d.key,
+                      const tieneSel = sel.some(
+                        (k) => horarioPorId.get(k)?.diaSemana === d.key,
                       );
                       return (
                         <button
@@ -991,9 +940,7 @@ export default function Planes() {
                         ? 'Completo'
                         : s.cupos === 1
                           ? 'Queda 1'
-                          : mode === 'prueba'
-                            ? `${s.cupos} lugares`
-                            : `${s.cupos} lugares aprox.`;
+                          : `${s.cupos} lugares aprox.`;
                       return (
                         <button
                           key={s.key}
@@ -1039,9 +986,7 @@ export default function Planes() {
               >
                 {completo
                   ? 'Continuar'
-                  : mode === 'prueba'
-                    ? 'Elegí una clase'
-                    : `Elegí ${necesarios - sel.length} horario${necesarios - sel.length === 1 ? '' : 's'} más`}
+                  : `Elegí ${necesarios - sel.length} horario${necesarios - sel.length === 1 ? '' : 's'} más`}
               </button>
             </div>
           )}

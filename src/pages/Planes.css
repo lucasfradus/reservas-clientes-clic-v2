@@ -442,29 +442,9 @@
   flex-wrap: wrap;
 }
 
-/* ── Próximas clases ── */
-.planes__clases {
-  margin-top: 34px;
-}
-.planes__clases-head {
-  text-align: center;
-  padding-bottom: 22px;
-  margin-bottom: 24px;
-  border-bottom: 1px solid var(--pl-line);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.planes__clases-title {
-  font-family: 'Prata', Georgia, 'Times New Roman', serif;
-  font-weight: 400;
-  font-size: 26px;
-  color: var(--pl-ink);
-  line-height: 1.1;
-}
-.planes__clases-sub {
-  font-size: 12px;
-  color: var(--pl-mute);
+/* ── Grilla de clases dentro del checkout de prueba ── */
+.planes__co-grilla {
+  margin-top: 18px;
 }
 
 /* ── Barra fija (mobile) ── */
