@@ -901,7 +901,11 @@ export default function Planes() {
                 Cupos reales de los próximos 14 días.
               </p>
               <div className="planes__co-grilla">
-                <GrillaClases clases={clases} onElegir={elegirClasePrueba} />
+                <GrillaClases
+                  clases={clases}
+                  onElegir={elegirClasePrueba}
+                  elegidaId={sel.length > 0 ? Number(sel[0]) : null}
+                />
               </div>
             </>
           )}

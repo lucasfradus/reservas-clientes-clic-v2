@@ -9,6 +9,8 @@ interface Props {
   /** Se llama al tocar un horario. La página decide qué hacer (abrir el
    *  checkout de prueba con esa clase ya elegida). */
   onElegir: (clase: Clase) => void;
+  /** Id de la clase ya elegida, para marcarla al volver del paso de datos. */
+  elegidaId?: number | null;
 }
 
 /**
@@ -19,12 +21,17 @@ interface Props {
  * deshabilitan en vez de desaparecer, así la tira no cambia de largo al
  * filtrar y no se puede llegar a una combinación vacía.
  */
-export function GrillaClases({ clases, onElegir }: Props) {
+export function GrillaClases({ clases, onElegir, elegidaId = null }: Props) {
   const [actividadId, setActividadId] = useState<number | null>(null);
   // Arranca en el primer día con clases y no en "Todos": son 14 días de
   // agenda, y sin filtro la sección le suma ~12.000px a la página. "Todos"
   // sigue estando en la tira para quien quiera ver todo de una.
+  //
+  // Si ya había una clase elegida (se volvió del paso de datos), arranca en el
+  // día de esa clase: es el que la persona estaba mirando.
   const [diaSel, setDiaSel] = useState<string | null>(() => {
+    const elegida = clases.find((c) => c.id === elegidaId);
+    if (elegida) return dayKey(elegida.inicio);
     let primero: string | null = null;
     for (const c of clases) {
       const k = dayKey(c.inicio);
@@ -217,7 +224,12 @@ export function GrillaClases({ clases, onElegir }: Props) {
               <p className="grilla__day-label">{grupo.label}</p>
               <div className="grilla__day-list">
                 {grupo.clases.map((clase) => (
-                  <ClaseRow key={clase.id} clase={clase} onElegir={onElegir} />
+                  <ClaseRow
+                    key={clase.id}
+                    clase={clase}
+                    onElegir={onElegir}
+                    elegida={clase.id === elegidaId}
+                  />
                 ))}
               </div>
             </div>

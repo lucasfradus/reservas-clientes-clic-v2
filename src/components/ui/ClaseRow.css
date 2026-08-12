@@ -96,6 +96,20 @@
   grid-template-rows: 1fr;
 }
 
+/* La que ya venía elegida al volver del paso de datos. */
+.clase-row--elegida {
+  border-color: var(--ink);
+  background: var(--bg);
+}
+
+.clase-row--elegida .clase-row__cupos {
+  background: var(--ink);
+}
+
+.clase-row--elegida .clase-row__cupos-lbl {
+  color: var(--surface);
+}
+
 /* Abierta, la descripción necesita el ancho completo, así que el botón de
    reservar baja a su propio renglón en vez de convivir apretado al costado. */
 .clase-row--open .clase-row__cupos {
