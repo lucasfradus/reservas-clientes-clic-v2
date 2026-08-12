@@ -1,5 +1,6 @@
 /* Landing de planes + checkout. Estética del prototipo "CLIC Landing planes":
-   columna mobile centrada, Prata para títulos/precios, paleta taupe + ink. */
+   columna mobile centrada, Prata para los títulos editoriales, Poppins light
+   para el nombre de la sede y los importes, paleta taupe + ink. */
 .planes {
   --pl-ink: #23222b;
   --pl-soft: #55534e;
@@ -21,21 +22,29 @@
   padding-top: 8px;
 }
 
+/* Prata queda para los títulos editoriales. */
 .pl-serif,
-.planes__hero-name,
-.planes__hero-price,
 .planes__intro-title,
 .planes__card-name,
-.planes__card-price,
 .planes__co-title,
 .planes__grid-title,
 .planes__summary-plan,
-.planes__summary-total-val,
 .planes__success-title,
 .planes__success-first {
   font-family: 'Prata', Georgia, 'Times New Roman', serif;
   font-weight: 400;
   letter-spacing: 0;
+}
+
+/* El nombre de la sede y los importes van en Poppins light, igual que el resto
+   de los números de la marca. */
+.planes__hero-name,
+.planes__hero-price,
+.planes__card-price,
+.planes__summary-total-val {
+  font-family: var(--font-sans);
+  font-weight: 300;
+  letter-spacing: -0.6px;
 }
 
 .planes__eyebrow {
@@ -67,28 +76,117 @@
 }
 
 /* ── Hero ── */
+/* El hero ocupa la pantalla entera: se come el padding superior de .page y el
+   lateral de la columna, así llega a los bordes. `dvh` (y no `vh`) para que la
+   barra del navegador de mobile no le recorte el CTA. */
 .planes__hero {
   position: relative;
-  margin-top: 12px;
-  border-radius: 20px;
+  margin: -32px -16px 0;
+  min-height: calc(100dvh - 60px); /* 60px = alto del header en mobile */
   overflow: hidden;
   background: var(--pl-ink);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
   isolation: isolate;
 }
+/* La foto es el fondo del hero entero. El cuerpo se apoya abajo, así queda
+   libre la mitad de arriba para swipear entre las fotos del estudio. */
 .planes__hero-media {
   position: absolute;
   inset: 0;
-  background-size: cover;
-  background-position: center;
-  opacity: 0.45;
-  z-index: -1;
+  background: linear-gradient(135deg, #d8c4ad, #bcac9e);
+}
+/* Sostiene la legibilidad del texto sobre cualquier foto. */
+.planes__hero-media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to top,
+    var(--pl-ink) 0%,
+    rgba(35, 34, 43, 0.92) 38%,
+    rgba(35, 34, 43, 0.55) 58%,
+    rgba(35, 34, 43, 0.12) 80%,
+    rgba(35, 34, 43, 0.3) 100%
+  );
+  pointer-events: none;
+}
+.planes__hero-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.planes__back-link {
+  position: absolute;
+  top: 16px;
+  left: 20px;
+  z-index: 2;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.8);
+  text-shadow: 0 1px 8px rgba(35, 34, 43, 0.5);
+}
+.planes__back-link:hover {
+  color: #fff;
+}
+/* Localidad y dirección en un solo renglón. */
+.planes__hero-place {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+  min-width: 0;
+}
+.planes__hero-city {
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.planes__hero-dot {
+  color: rgba(255, 255, 255, 0.45);
+}
+.planes__hero-links {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+.planes__hero-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  transition: color 0.2s;
+}
+.planes__hero-links a:hover {
+  color: #fff;
 }
 .planes__hero-body {
   position: relative;
-  padding: 28px 22px 24px;
+  padding: 28px 22px 32px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+/* En desktop el header y el aire de la página son más altos. */
+@media (min-width: 769px) {
+  .planes__hero {
+    margin-top: -48px;
+    min-height: calc(100dvh - 72px);
+  }
 }
 .planes__hero-name {
   font-size: 32px;
@@ -203,12 +301,6 @@
   padding: 2px 7px;
   font-weight: 700;
   text-transform: uppercase;
-}
-.planes__toggle-note {
-  text-align: center;
-  font-size: 10.5px;
-  color: var(--pl-mute);
-  margin-top: 8px;
 }
 
 /* ── Cards ── */
@@ -352,6 +444,67 @@
   font-size: 10.5px;
   color: var(--pl-mute);
   flex-wrap: wrap;
+}
+
+/* ── Grilla de clases dentro del checkout de prueba ── */
+.planes__co-grilla {
+  margin-top: 18px;
+}
+
+/* ── Barra fija (mobile) ── */
+.planes__sticky {
+  display: none;
+}
+@media (max-width: 640px) {
+  /* Que la barra fija no tape el final de la página. */
+  .planes--landing {
+    padding-bottom: 84px;
+  }
+  .planes__sticky {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px 20px 16px;
+    background: var(--pl-surface);
+    border-top: 1px solid var(--pl-line);
+    box-shadow: 0 -8px 24px -8px rgba(35, 34, 43, 0.18);
+  }
+  .planes__sticky-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .planes__sticky-label {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--pl-mute);
+  }
+  .planes__sticky-price {
+    font-family: var(--font-sans);
+    font-weight: 300;
+    letter-spacing: -0.6px;
+    font-size: 20px;
+    color: var(--pl-ink);
+  }
+  .planes__sticky-btn {
+    padding: 12px 24px;
+    background: var(--pl-ink);
+    color: #fff;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
 }
 
 /* ── Recordatorio ── */
@@ -735,24 +888,76 @@
   color: var(--pl-mute);
 }
 
-/* ── Info del pack flexible (paso 1) ── */
-.planes__flex-info {
+/* ── Grilla horaria de referencia (pack flexible, paso 1) ── */
+.planes__grilla {
   background: var(--pl-surface);
   border: 1px solid var(--pl-line);
   border-radius: 16px;
-  padding: 18px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+  overflow: hidden;
 }
-.planes__flex-title {
-  font-size: 15px;
+.planes__grilla-sum {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 16px 20px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--pl-ink);
+  cursor: pointer;
+  list-style: none;
 }
-.planes__flex-desc {
-  font-size: 13px;
-  color: var(--pl-soft);
+.planes__grilla-sum::-webkit-details-marker {
+  display: none;
+}
+/* El chevron es el único indicio de que esto se abre. */
+.planes__grilla-sum::after {
+  content: '⌄';
+  font-size: 15px;
+  line-height: 1;
+  color: var(--pl-mute);
+  transform: translateY(-2px);
+  transition: transform 0.2s ease;
+}
+.planes__grilla[open] .planes__grilla-sum::after {
+  transform: translateY(2px) rotate(180deg);
+}
+.planes__grilla-body {
+  padding: 4px 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.planes__grilla-dia {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.planes__grilla-dia-lbl {
+  flex: 0 0 34px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--pl-mute);
+}
+.planes__grilla-horas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.planes__grilla-hora {
+  font-size: 12px;
+  color: var(--pl-ink);
+  background: #fff;
+  border: 1px solid var(--pl-line);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+.planes__grilla-nota {
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: var(--pl-mute);
   line-height: 1.5;
   text-wrap: pretty;
 }

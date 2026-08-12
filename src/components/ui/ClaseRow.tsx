@@ -1,33 +1,36 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import type { Clase, Sede } from '../../types';
-import { formatTime } from '../../lib/format';
-import { trackVenta } from '../../lib/analytics';
+import type { Clase } from '../../types';
+import { formatTime, nombreConInicial } from '../../lib/format';
 import './ClaseRow.css';
 
-export function ClaseRow({ clase, sede }: { clase: Clase; sede: Sede }) {
+interface Props {
+  clase: Clase;
+  /** Tocar la fila abre el checkout de prueba con esta clase ya elegida. La
+   *  página es la que sabe cómo hacerlo (y la que mide el begin_checkout). */
+  onElegir: (clase: Clase) => void;
+}
+
+export function ClaseRow({ clase, onElegir }: Props) {
   const cupos = clase.cuposDisponibles;
   const desc = clase.actividad.descripcion;
+  const profe = nombreConInicial(clase.instructor);
   const [open, setOpen] = useState(false);
 
   return (
-    <Link
-      to={`/sede/${sede.slug}/precios`}
-      state={{ mode: 'prueba', clase }}
-      className="clase-row"
-      onClick={() =>
-        // Este clic ya elige horario y abre el checkout de prueba con la clase
-        // precargada, así que es el begin_checkout de ese camino. El otro
-        // camino (entrar a /precios y tocar "reservar prueba") lo dispara
-        // `elegirPrueba`, y nunca se pasa por los dos.
-        trackVenta('begin_checkout', {
-          nombre: clase.actividad.nombre,
-          categoria: 'Trial',
-          sede: sede.nombre,
-          sedeSlug: sede.slug,
-          precio: sede.precioPrueba,
-        })
-      }
+    // La fila entera es el control que elige la clase, pero adentro vive el
+    // toggle "+ info": un <button> dentro de otro <button> es HTML inválido,
+    // así que el contenedor se comporta como botón sin serlo.
+    <div
+      role="button"
+      tabIndex={0}
+      className={`clase-row${open ? ' clase-row--open' : ''}`}
+      onClick={() => onElegir(clase)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onElegir(clase);
+        }
+      }}
     >
       <div className="clase-row__time">{formatTime(clase.inicio)}</div>
       <div className="clase-row__body">
@@ -45,16 +48,8 @@ export function ClaseRow({ clase, sede }: { clase: Clase; sede: Sede }) {
             {open ? '− info' : '+ info'}
           </button>
         )}
-        {desc && (
-          <div className={`clase-row__desc-wrap${open ? ' clase-row__desc-wrap--open' : ''}`}>
-            <div className="clase-row__desc-inner">
-              <p className="clase-row__desc">{desc}</p>
-            </div>
-          </div>
-        )}
         <p className="clase-row__meta">
-          {clase.instructor ? `con ${clase.instructor}` : 'Instructora a confirmar'}
-          {clase.salon ? ` · ${clase.salon.nombre}` : ''}
+          {profe ? `con ${profe}` : 'Instructora a confirmar'}
         </p>
       </div>
       <div className={`clase-row__cupos${cupos === 0 ? ' clase-row__cupos--agotado' : ''}`}>
@@ -63,6 +58,21 @@ export function ClaseRow({ clase, sede }: { clase: Clase; sede: Sede }) {
         </span>
       </div>
       <span className="clase-row__arrow" aria-hidden="true">→</span>
-    </Link>
+      {/* La descripción es hermana del cuerpo, no hija: abierta ocupa el ancho
+          completo de la fila y empuja el botón de reservar abajo, en vez de
+          apretarse en la columna del medio. */}
+      {desc && (
+        <div
+          className={`clase-row__desc-wrap${open ? ' clase-row__desc-wrap--open' : ''}`}
+          // Leer la descripción no es querer reservar: sin esto, tocar el
+          // texto que se acaba de abrir manda al paso de datos.
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="clase-row__desc-inner">
+            <p className="clase-row__desc">{desc}</p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

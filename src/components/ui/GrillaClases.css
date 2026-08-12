@@ -1,0 +1,188 @@
+/* Grilla de próximas clases con sus filtros. Portado de la vieja página de
+   sede, que se fusionó con la landing de planes. */
+
+/* ===== Pills de filtro ===== */
+.grilla__filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 32px;
+  justify-content: center;
+}
+
+.grilla__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease,
+    transform 0.15s ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.grilla__pill:hover {
+  border-color: var(--taupe);
+  color: var(--ink);
+}
+
+.grilla__pill--active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--surface);
+}
+
+.grilla__pill--active:hover {
+  border-color: var(--ink);
+  color: var(--surface);
+}
+
+.grilla__pill-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(44, 47, 52, 0.08);
+}
+
+.grilla__pill--active .grilla__pill-dot {
+  box-shadow: 0 0 0 2px rgba(253, 251, 250, 0.15);
+}
+
+.grilla__pill-count {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  color: var(--ink-mute);
+  letter-spacing: 0.3px;
+  min-width: 20px;
+  text-align: center;
+}
+
+.grilla__pill--active .grilla__pill-count {
+  background: rgba(253, 251, 250, 0.12);
+  color: var(--surface);
+}
+
+.grilla__pill:disabled {
+  opacity: 0.35;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* Catorce días no entran en el ancho del container ni en desktop, así que la
+   tira de días siempre scrollea en horizontal en vez de envolverse. */
+.grilla__filtros--dias {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  margin-bottom: 16px;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.grilla__filtros--dias::-webkit-scrollbar {
+  display: none;
+}
+
+/* ===== Días ===== */
+.grilla__days {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.grilla__day-label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 14px;
+  padding-left: 4px;
+}
+
+.grilla__day-list {
+  display: flex;
+  flex-direction: column;
+}
+
+/* ===== Vacíos ===== */
+.grilla__empty {
+  text-align: center;
+  padding: 60px 20px;
+  background: var(--surface);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.grilla__empty-title {
+  font-family: var(--font-sans);
+  font-weight: 300;
+  letter-spacing: -0.6px;
+  line-height: 1.05;
+  font-size: 22px;
+  color: var(--ink);
+}
+
+.grilla__empty-sub {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.grilla__empty-btn {
+  display: inline-block;
+  margin-top: 18px;
+  padding: 12px 26px;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  border-radius: var(--radius-pill);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.grilla__empty-btn:hover {
+  background: var(--ink);
+  color: var(--surface);
+}
+
+@media (max-width: 640px) {
+  .grilla__days {
+    gap: 28px;
+  }
+  .grilla__day-label {
+    font-size: 11px;
+  }
+  .grilla__filtros {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    margin-left: -20px;
+    margin-right: -20px;
+    padding: 4px 20px;
+    scrollbar-width: none;
+  }
+  .grilla__filtros::-webkit-scrollbar {
+    display: none;
+  }
+  .grilla__pill {
+    padding: 9px 14px;
+    font-size: 11px;
+  }
+}

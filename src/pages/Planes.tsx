@@ -5,7 +5,7 @@ import {
   useState,
   type FormEvent,
 } from 'react';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import {
   ApiError,
   checkout,
@@ -24,19 +24,18 @@ import type {
 } from '../types';
 import { Loading } from '../components/ui/Loading';
 import { ErrorBanner } from '../components/ui/ErrorBanner';
-import {
-  dayKey,
-  formatDayShort,
-  formatPrice,
-  formatTime,
-} from '../lib/format';
+import { GrillaClases } from '../components/ui/GrillaClases';
+import { SedeGaleria } from '../components/ui/SedeGaleria';
+import { Iso } from '../components/brand/Iso';
+import { formatDayShort, formatPrice, formatTime } from '../lib/format';
 import { trackEvent, trackVenta } from '../lib/analytics';
 import { trackMetaEvent } from '../lib/meta';
 import './Planes.css';
 
 /**
- * Landing de planes + checkout. Port del prototipo de Claude Design
- * "CLIC Landing planes". Reemplaza las páginas Precios y Reservar.
+ * Home de la sede: landing de planes + grilla de clases + checkout. Port del
+ * prototipo de Claude Design "CLIC Landing planes". Reemplaza las páginas
+ * Precios, Reservar y Sede: es todo lo que hay en `/sede/:slug`.
  *
  * Dos caminos comparten la misma UI de checkout (`mode`):
  *  - 'prueba' → elegís UNA clase real y el pago es REAL vía checkout() → MP.
@@ -72,11 +71,6 @@ type HorariosState =
   | { status: 'loading' }
   | { status: 'error' }
   | { status: 'ok'; horarios: HorarioFijable[] };
-
-interface LocationState {
-  mode?: Mode;
-  clase?: Clase;
-}
 
 const DIA_INFO: Record<DiaSemana, { corto: string; orden: number }> = {
   LUNES: { corto: 'Lun', orden: 0 },
@@ -130,9 +124,11 @@ function validate(form: {
 
 export default function Planes() {
   const { slug } = useParams<{ slug: string }>();
-  const location = useLocation();
-  const preload = (location.state ?? {}) as LocationState;
   const planesRef = useRef<HTMLDivElement>(null);
+  const heroRef = useRef<HTMLElement>(null);
+  // Barra fija de mobile: aparece cuando el hero (con su CTA y su precio) se
+  // fue de pantalla, y solo en la landing.
+  const [showSticky, setShowSticky] = useState(false);
 
   const [load, setLoad] = useState<LoadState>({ status: 'loading' });
 
@@ -200,20 +196,14 @@ export default function Planes() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(cargar, [slug]);
 
-  // Si llegan con una clase preseleccionada (desde el listado de la sede),
-  // abrimos directo el checkout de prueba en el paso de datos.
-  const preloadApplied = useRef(false);
   useEffect(() => {
-    if (preloadApplied.current || load.status !== 'ok') return;
-    if (preload.mode === 'prueba' && preload.clase) {
-      preloadApplied.current = true;
-      setMode('prueba');
-      setScreen('checkout');
-      setDia(dayKey(preload.clase.inicio));
-      setSel([String(preload.clase.id)]);
-      setStep(2);
-    }
-  }, [load.status, preload.mode, preload.clase]);
+    const onScroll = () => {
+      const hero = heroRef.current;
+      if (hero) setShowSticky(hero.getBoundingClientRect().bottom < 0);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   // ── Derivados ─────────────────────────────────────────────────────────
   const tipos = load.status === 'ok' ? load.tipos : [];
@@ -225,6 +215,28 @@ export default function Planes() {
   useEffect(() => {
     if (!sede) return;
     trackEvent('view_planes', { sede: sede.nombre, sede_slug: sede.slug });
+
+    // Vista de la sede (contenido + oferta). Abre el embudo de ecommerce de
+    // GA4 (view_item → begin_checkout → add_payment_info → purchase) y su
+    // equivalente en Meta. Vivía en la página de sede, que ahora es esta.
+    const params: Record<string, unknown> = {
+      content_name: sede.nombre,
+      content_category: 'Trial',
+      sede: sede.nombre,
+    };
+    if (sede.precioPrueba != null) {
+      params.value = sede.precioPrueba;
+      params.currency = 'ARS';
+    }
+    trackMetaEvent('ViewContent', params, undefined, sede.slug);
+
+    trackVenta('view_item', {
+      nombre: `Clase de prueba - ${sede.nombre}`,
+      categoria: 'Trial',
+      sede: sede.nombre,
+      sedeSlug: sede.slug,
+      precio: sede.precioPrueba,
+    });
   }, [sede]);
 
   const frecuenciasDisponibles = useMemo(
@@ -248,11 +260,14 @@ export default function Planes() {
     [tipos, periodo],
   );
 
+  // Solo las características de los planes que se están mostrando: si se
+  // juntan todas, con "Mensual" elegido el checklist dice "Vence a los 30
+  // días" y "Vence a los 90 días" al mismo tiempo.
   const beneficios = useMemo(() => {
     const set = new Set<string>();
-    for (const t of tipos) for (const c of t.caracteristicas) set.add(c);
+    for (const t of planes) for (const c of t.caracteristicas) set.add(c);
     return set.size > 0 ? Array.from(set).slice(0, 6) : BENEFICIOS_FALLBACK;
-  }, [tipos]);
+  }, [planes]);
 
   const tipoSel = useMemo(
     () => tipos.find((t) => t.id === tipoId) ?? null,
@@ -260,8 +275,9 @@ export default function Planes() {
   );
 
   const flex = modalidad === 'flex';
-  const necesarios =
-    mode === 'prueba' ? 1 : flex ? 0 : tipoSel?.fijo.ingresosPorSemana ?? 1;
+  // Horarios fijos que pide el plan elegido. En modo prueba no aplica: la
+  // clase se elige tocándola en la grilla.
+  const necesarios = flex ? 0 : tipoSel?.fijo.ingresosPorSemana ?? 1;
 
   const horariosData = horarios.status === 'ok' ? horarios.horarios : [];
   const horarioPorId = useMemo(() => {
@@ -270,58 +286,52 @@ export default function Planes() {
     return m;
   }, [horariosData]);
 
-  // Clases reales por día (modo prueba).
-  const clasesPorDia = useMemo(() => {
-    const map = new Map<string, Clase[]>();
-    for (const c of clases) {
-      const k = dayKey(c.inicio);
-      const arr = map.get(k) ?? [];
-      arr.push(c);
-      map.set(k, arr);
-    }
-    return map;
-  }, [clases]);
-
-  // Días para las chips: prueba → días reales con clases; plan-fijo → días de la
-  // semana con horarios fijables.
+  // Días de la semana con horarios fijables (solo plan-fijo).
   const diasChips = useMemo(() => {
-    if (mode === 'prueba') {
-      return Array.from(clasesPorDia.keys())
-        .sort()
-        .map((k) => ({ key: k, label: formatDayShort(clasesPorDia.get(k)![0].inicio) }));
-    }
     const dias = Array.from(new Set(horariosData.map((h) => h.diaSemana)));
     return dias
       .sort((a, b) => DIA_INFO[a].orden - DIA_INFO[b].orden)
       .map((d) => ({ key: d as string, label: DIA_INFO[d].corto }));
-  }, [mode, clasesPorDia, horariosData]);
+  }, [horariosData]);
 
-  // Fijar el día activo cuando aparece la grilla.
+  // Fijar el día activo cuando aparece la grilla de horarios fijos.
   useEffect(() => {
     if (screen !== 'checkout' || step !== 1) return;
-    if (mode === 'plan' && modalidad !== 'fijo') return;
+    if (mode !== 'plan' || modalidad !== 'fijo') return;
     if (dia && diasChips.some((d) => d.key === dia)) return;
     if (diasChips.length > 0) setDia(diasChips[0].key);
   }, [screen, step, mode, modalidad, dia, diasChips]);
 
-  // Slots del día activo.
-  const slots = useMemo(() => {
-    if (mode === 'prueba') {
-      const arr = clasesPorDia.get(dia) ?? [];
-      return arr.map((c) => ({
-        key: String(c.id),
-        hora: formatTime(c.inicio),
-        cupos: c.cuposDisponibles,
-      }));
+  // Grilla semanal de la sede: los mismos horarios agrupados por día. Es lo
+  // que se muestra como referencia en el pack flexible.
+  const grillaSemanal = useMemo(() => {
+    const map = new Map<DiaSemana, string[]>();
+    for (const h of horariosData) {
+      const arr = map.get(h.diaSemana) ?? [];
+      arr.push(hhmm(h.horaInicio));
+      map.set(h.diaSemana, arr);
     }
-    return horariosData
-      .filter((h) => (h.diaSemana as string) === dia)
-      .map((h) => ({
-        key: String(h.id),
-        hora: hhmm(h.horaInicio),
-        cupos: h.cuposAprox ?? h.cupo,
+    return Array.from(map.entries())
+      .sort(([a], [b]) => DIA_INFO[a].orden - DIA_INFO[b].orden)
+      .map(([diaSemana, horas]) => ({
+        diaSemana,
+        label: DIA_INFO[diaSemana].corto,
+        horas: Array.from(new Set(horas)).sort(),
       }));
-  }, [mode, dia, clasesPorDia, horariosData]);
+  }, [horariosData]);
+
+  // Slots del día activo.
+  const slots = useMemo(
+    () =>
+      horariosData
+        .filter((h) => (h.diaSemana as string) === dia)
+        .map((h) => ({
+          key: String(h.id),
+          hora: hhmm(h.horaInicio),
+          cupos: h.cuposAprox ?? h.cupo,
+        })),
+    [dia, horariosData],
+  );
 
   const labelDeSel = (key: string): string => {
     if (mode === 'prueba') {
@@ -334,7 +344,6 @@ export default function Planes() {
 
   const toggleSlot = (key: string) => {
     setSel((cur) => {
-      if (mode === 'prueba') return cur.includes(key) ? [] : [key];
       if (cur.includes(key)) return cur.filter((k) => k !== key);
       if (cur.length < necesarios) return [...cur, key];
       return [...cur.slice(0, -1), key]; // reemplaza el último
@@ -366,6 +375,15 @@ export default function Planes() {
     scrollTop();
   };
 
+  // Tocar una clase en la grilla del paso 1 la elige y pasa a los datos. No
+  // mide nada: el begin_checkout ya salió al abrir el checkout (`abrirPrueba`),
+  // que es el único camino para llegar hasta acá.
+  const elegirClasePrueba = (clase: Clase) => {
+    setSel([String(clase.id)]);
+    setStep(2);
+    scrollTop();
+  };
+
   const empezarPlan = (t: CatalogoTipoPlan) => {
     setMode('plan');
     setTipoId(t.id);
@@ -389,9 +407,11 @@ export default function Planes() {
     scrollTop();
   };
 
-  // Cargar los horarios fijables reales al elegir "horarios fijos".
+  // Cargar los horarios reales de la sede al elegir modalidad. En "fijo" son
+  // los que se eligen; en "flexible" se muestran nada más como referencia de
+  // la grilla, para saber si los horarios de la sede te sirven.
   useEffect(() => {
-    if (mode !== 'plan' || modalidad !== 'fijo' || !tipoSel || !sede) return;
+    if (mode !== 'plan' || modalidad == null || !tipoSel || !sede) return;
     let cancelado = false;
     setHorarios({ status: 'loading' });
     getHorarios(sede.id, tipoSel.fijo.planId)
@@ -574,30 +594,44 @@ export default function Planes() {
     );
   }
 
-  const heroImg = sede?.imagenUrl ?? sede?.fotos[0] ?? null;
+  // La imagen de cabecera abre el carrusel y la galería la continúa. Set
+  // dedupe por si el estudio subió la misma foto en ambos lados.
+  const heroImages = sede
+    ? Array.from(new Set([...(sede.imagenUrl ? [sede.imagenUrl] : []), ...sede.fotos]))
+    : [];
 
   // ══════════════════════════════ LANDING ══════════════════════════════
   if (screen === 'landing') {
     return (
-      <div className="planes">
-        {/* Hero: clase de prueba */}
-        <section className="planes__hero">
-          {heroImg && (
-            <div
-              className="planes__hero-media"
-              style={{ backgroundImage: `url(${heroImg})` }}
-              aria-hidden="true"
+      <div className="planes planes--landing">
+        {/* Hero: ocupa la pantalla entera. La galería es el fondo y el cuerpo
+            se apoya abajo, sobre el degradado. */}
+        <section className="planes__hero" ref={heroRef}>
+          <div className="planes__hero-media">
+            <SedeGaleria
+              key={sede?.id}
+              images={heroImages}
+              sedeNombre={sede?.nombre ?? ''}
+              fallback={
+                <div className="planes__hero-fallback">
+                  <Iso variant="white" size={72} />
+                </div>
+              }
             />
-          )}
+          </div>
+          <Link to="/" className="planes__back-link">
+            ← Ver todas las sedes
+          </Link>
           <div className="planes__hero-body">
-            <span className="planes__eyebrow planes__eyebrow--light">
-              {sede?.ciudad}
-            </span>
+            <p className="planes__hero-place">
+              <span className="planes__hero-city">{sede?.ciudad}</span>
+              <span className="planes__hero-dot" aria-hidden="true">·</span>
+              {sede?.direccion}
+            </p>
             <h1 className="planes__hero-name">{sede?.nombre}</h1>
-            <p className="planes__hero-addr">{sede?.direccion}</p>
 
             <span className="planes__eyebrow planes__eyebrow--light planes__hero-gap">
-              Tu primera clase
+              Tu clase de prueba en CLIC
             </span>
             <p className="planes__hero-price">{formatPrice(sede?.precioPrueba)}</p>
             <p className="planes__hero-note">
@@ -616,8 +650,29 @@ export default function Planes() {
               className="planes__hero-link"
               onClick={scrollToPlanes}
             >
-              Ya entreno reformer → ver planes
+              Ver planes → Quiero adquirir mi membresía
             </button>
+
+            {(sede?.whatsappUrl || sede?.googleMapsUrl) && (
+              <div className="planes__hero-links">
+                {sede?.whatsappUrl && (
+                  <a href={sede.whatsappUrl} target="_blank" rel="noreferrer">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+                    </svg>
+                    WhatsApp
+                  </a>
+                )}
+                {sede?.googleMapsUrl && (
+                  <a href={sede.googleMapsUrl} target="_blank" rel="noreferrer">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z" />
+                    </svg>
+                    Cómo llegar
+                  </a>
+                )}
+              </div>
+            )}
           </div>
         </section>
 
@@ -630,9 +685,9 @@ export default function Planes() {
 
         {/* Encabezado planes */}
         <div ref={planesRef} className="planes__intro">
-          <h2 className="planes__intro-title">Tu lugar en el reformer, todo el mes</h2>
+          <h2 className="planes__intro-title">Elegí cómo querés vivir CLIC</h2>
           <p className="planes__intro-sub">
-            Elegí tu ritmo y empezá esta semana. Pagás online y reservás tus
+            Encontrá el plan que mejor se adapte a tu rutina y reservá tus
             clases desde la app.
           </p>
         </div>
@@ -657,9 +712,6 @@ export default function Planes() {
                 ) : null,
               )}
             </div>
-            <p className="planes__toggle-note">
-              Precios pagando con efectivo o transferencia · {sede?.nombre}
-            </p>
           </div>
         )}
 
@@ -742,6 +794,24 @@ export default function Planes() {
           </button>{' '}
           — si te quedás, se descuenta de tu plan.
         </div>
+
+        {showSticky && (
+          <div className="planes__sticky">
+            <div className="planes__sticky-info">
+              <span className="planes__sticky-label">Clase de prueba</span>
+              <span className="planes__sticky-price">
+                {formatPrice(sede?.precioPrueba)}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="planes__sticky-btn"
+              onClick={abrirPrueba}
+            >
+              Reservar
+            </button>
+          </div>
+        )}
       </div>
     );
   }
@@ -822,31 +892,37 @@ export default function Planes() {
             </>
           )}
 
+          {/* Prueba: la agenda real de la sede, con sus filtros. Tocar una
+              clase la elige y pasa a los datos — no hay paso intermedio. */}
           {mode === 'prueba' && (
-            <h2 className="planes__co-title">Elegí tu clase de prueba</h2>
+            <>
+              <h2 className="planes__co-title">Elegí tu clase de prueba</h2>
+              <p className="planes__co-sub">
+                Cupos reales de los próximos 14 días.
+              </p>
+              <div className="planes__co-grilla">
+                <GrillaClases clases={clases} onElegir={elegirClasePrueba} />
+              </div>
+            </>
           )}
 
-          {/* Grilla de horarios (prueba o plan con horarios fijos) */}
-          {(mode === 'prueba' || (mode === 'plan' && modalidad === 'fijo')) && (
+          {/* Grilla de horarios recurrentes (plan con horarios fijos) */}
+          {mode === 'plan' && modalidad === 'fijo' && (
             <div className="planes__grid-wrap">
               <div className="planes__grid-head">
                 <h3 className="planes__grid-title">
-                  {mode === 'prueba'
-                    ? 'Días con lugar'
-                    : necesarios === 1
-                      ? 'Elegí tu horario fijo'
-                      : `Elegí tus ${necesarios} horarios fijos`}
+                  {necesarios === 1
+                    ? 'Elegí tu horario fijo'
+                    : `Elegí tus ${necesarios} horarios fijos`}
                 </h3>
                 <p className="planes__grid-sub">
-                  {mode === 'prueba'
-                    ? 'Cupos reales de los próximos 14 días.'
-                    : 'Van a ser tus clases de cada semana. Mismo grupo, mismo profe.'}
+                  Van a ser tus clases de cada semana. Mismo grupo, mismo profe.
                 </p>
               </div>
 
-              {mode === 'plan' && horarios.status === 'loading' ? (
+              {horarios.status === 'loading' ? (
                 <Loading label="Cargando horarios" />
-              ) : mode === 'plan' && horarios.status === 'error' ? (
+              ) : horarios.status === 'error' ? (
                 <div className="planes__empty planes__empty--soft">
                   <p>No pudimos cargar los horarios. Probá de nuevo.</p>
                 </div>
@@ -859,10 +935,8 @@ export default function Planes() {
                   <div className="planes__days">
                     {diasChips.map((d) => {
                       const active = d.key === dia;
-                      const tieneSel = sel.some((k) =>
-                        mode === 'prueba'
-                          ? clasesPorDia.get(d.key)?.some((c) => String(c.id) === k)
-                          : horarioPorId.get(k)?.diaSemana === d.key,
+                      const tieneSel = sel.some(
+                        (k) => horarioPorId.get(k)?.diaSemana === d.key,
                       );
                       return (
                         <button
@@ -886,9 +960,7 @@ export default function Planes() {
                         ? 'Completo'
                         : s.cupos === 1
                           ? 'Queda 1'
-                          : mode === 'prueba'
-                            ? `${s.cupos} lugares`
-                            : `${s.cupos} lugares aprox.`;
+                          : `${s.cupos} lugares aprox.`;
                       return (
                         <button
                           key={s.key}
@@ -934,23 +1006,52 @@ export default function Planes() {
               >
                 {completo
                   ? 'Continuar'
-                  : mode === 'prueba'
-                    ? 'Elegí una clase'
-                    : `Elegí ${necesarios - sel.length} horario${necesarios - sel.length === 1 ? '' : 's'} más`}
+                  : `Elegí ${necesarios - sel.length} horario${necesarios - sel.length === 1 ? '' : 's'} más`}
               </button>
             </div>
           )}
 
-          {/* Pack flexible: sin horarios fijos, confirma y sigue */}
+          {/* Pack flexible: no hay horarios que elegir, pero sí una duda que
+              resolver antes de pagar — si la grilla de la sede te sirve. */}
           {mode === 'plan' && flex && (
             <div className="planes__grid-wrap">
-              <div className="planes__flex-info">
-                <p className="planes__flex-title">Pack flexible</p>
-                <p className="planes__flex-desc">
-                  Reservás tus clases cada semana desde la app, según tu
-                  disponibilidad. Sin horario fijo asignado.
-                </p>
-              </div>
+              <details className="planes__grilla">
+                <summary className="planes__grilla-sum">
+                  Ver grilla horaria
+                </summary>
+                <div className="planes__grilla-body">
+                  {horarios.status === 'loading' ? (
+                    <Loading label="Cargando horarios" />
+                  ) : horarios.status === 'error' || grillaSemanal.length === 0 ? (
+                    <p className="planes__grilla-nota">
+                      No pudimos cargar la grilla. Escribinos por WhatsApp y te
+                      la pasamos.
+                    </p>
+                  ) : (
+                    <>
+                      {grillaSemanal.map((d) => (
+                        <div key={d.diaSemana} className="planes__grilla-dia">
+                          <span className="planes__grilla-dia-lbl">
+                            {d.label}
+                          </span>
+                          <div className="planes__grilla-horas">
+                            {d.horas.map((h) => (
+                              <span key={h} className="planes__grilla-hora">
+                                {h}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                      <p className="planes__grilla-nota">
+                        Es la grilla de la sede, a modo de referencia. Con el
+                        pack flexible reservás cada clase desde la app según la
+                        disponibilidad del momento.
+                      </p>
+                    </>
+                  )}
+                </div>
+              </details>
               <button
                 type="button"
                 className="planes__co-cta"
