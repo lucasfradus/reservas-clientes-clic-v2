@@ -64,7 +64,7 @@ type Modalidad = 'fijo' | 'flex';
 type Medio = 'online' | 'debito';
 
 type FormErrors = Partial<
-  Record<'nombre' | 'apellido' | 'email' | 'telefono', string>
+  Record<'nombre' | 'apellido' | 'email' | 'telefono' | 'dni', string>
 >;
 
 type LoadState =
@@ -245,11 +245,24 @@ function ResumenCompra({ datos }: { datos: DatosResumen }) {
   );
 }
 
+/**
+ * Mismo criterio que `normalizarDni` del backend: 7 u 8 dígitos, tolerando
+ * puntos y espacios. Si acá pasara algo que allá se descarta, se guardaría el
+ * alumno sin DNI y nadie se enteraría.
+ */
+function validarDni(dni: string): string | undefined {
+  const digitos = dni.replace(/\D/g, '');
+  if (digitos.length === 0) return 'Ingresá tu DNI';
+  if (digitos.length < 7 || digitos.length > 8) return 'DNI inválido';
+  return undefined;
+}
+
 function validate(form: {
   nombre: string;
   apellido: string;
   email: string;
   telefono: string;
+  dni: string;
 }): FormErrors {
   const errors: FormErrors = {};
   if (!form.nombre.trim()) errors.nombre = 'Ingresá tu nombre';
@@ -264,6 +277,8 @@ function validate(form: {
   } else if (form.telefono.replace(/\D/g, '').length < 8) {
     errors.telefono = 'Teléfono demasiado corto';
   }
+  const dni = validarDni(form.dni);
+  if (dni) errors.dni = dni;
   return errors;
 }
 
@@ -617,10 +632,7 @@ export default function Planes() {
     (field: keyof typeof form) => (e: FormEvent<HTMLInputElement>) => {
       const value = (e.target as HTMLInputElement).value;
       setForm((f) => ({ ...f, [field]: value }));
-      // El DNI no se valida, así que no tiene error que limpiar.
-      if (field !== 'dni' && errors[field]) {
-        setErrors((prev) => ({ ...prev, [field]: undefined }));
-      }
+      if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
     };
 
   // Datos y pago viven en la misma pantalla: el submit del formulario es el
@@ -653,6 +665,7 @@ export default function Planes() {
         apellido: form.apellido.trim(),
         email: form.email.trim(),
         telefono: form.telefono.trim(),
+        dni: form.dni.trim(),
       });
       // `content_category` lleva el TIPO de venta, no la sede: es el campo por
       // el que Meta permite armar conversiones personalizadas, y lo que hay que
@@ -699,7 +712,7 @@ export default function Planes() {
         apellido: form.apellido.trim(),
         email: form.email.trim(),
         telefono: form.telefono.trim(),
-        dni: form.dni.trim() || undefined,
+        dni: form.dni.trim(),
       });
       const clase = clases.find((c) => c.id === claseId);
       const params: Record<string, unknown> = {
@@ -1411,21 +1424,20 @@ export default function Planes() {
                 <span className="planes__field-err">{errors.telefono}</span>
               )}
             </label>
-            {/* Solo en la clase de prueba: el checkout de planes no recibe DNI. */}
-            {mode === 'prueba' && (
-              <label className="planes__field">
-                <span className="planes__field-lbl">
-                  DNI <span className="planes__field-opt">(opcional)</span>
-                </span>
-                <input
-                  className="planes__input"
-                  placeholder="12345678"
-                  inputMode="numeric"
-                  value={form.dni}
-                  onChange={handleChange('dni')}
-                />
-              </label>
-            )}
+            <label className="planes__field">
+              <span className="planes__field-lbl">DNI</span>
+              <input
+                className="planes__input"
+                placeholder="12345678"
+                inputMode="numeric"
+                autoComplete="off"
+                value={form.dni}
+                onChange={handleChange('dni')}
+              />
+              {errors.dni && (
+                <span className="planes__field-err">{errors.dni}</span>
+              )}
+            </label>
           </div>
 
           {mode === 'plan' && (
