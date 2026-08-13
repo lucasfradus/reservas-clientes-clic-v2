@@ -310,19 +310,29 @@
   flex-direction: column;
   gap: 14px;
 }
+/* Blancas y con sombra. Antes eran #f7f6f2 sobre un fondo #edece7: diez puntos
+   de diferencia por canal y un borde al 10% de opacidad, así que la tarjeta no
+   se despegaba de la página. La jerarquía de la destacada no la daba el color
+   sino el borde, el ribbon y el CTA sólido, que siguen intactos. */
 .planes__card {
   position: relative;
-  background: var(--pl-surface);
-  border: 1px solid var(--pl-line);
+  background: #fff;
+  border: 1px solid rgba(35, 34, 43, 0.14);
   border-radius: 20px;
   padding: 24px 22px;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  box-shadow:
+    0 1px 2px rgba(35, 34, 43, 0.04),
+    0 10px 22px -14px rgba(35, 34, 43, 0.22);
 }
+/* La destacada se levanta un escalón más. */
 .planes__card--top {
-  background: #fff;
   border: 1.5px solid var(--pl-ink);
+  box-shadow:
+    0 2px 4px rgba(35, 34, 43, 0.06),
+    0 16px 32px -16px rgba(35, 34, 43, 0.4);
 }
 .planes__card-ribbon {
   position: absolute;
