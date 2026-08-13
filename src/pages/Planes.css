@@ -531,11 +531,28 @@
   gap: 12px;
   padding: 6px 0 18px;
 }
+/* Redondo y del mismo alto que las pills de pasos que tiene al lado: antes era
+   una flecha suelta de 24x26, por debajo del área táctil mínima de 44x44 y sin
+   parecer un control. */
 .planes__co-back {
-  font-size: 18px;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(35, 34, 43, 0.18);
+  border-radius: 999px;
   color: var(--pl-soft);
-  padding: 4px 8px 4px 0;
-  line-height: 1;
+  background: transparent;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.planes__co-back:hover {
+  border-color: var(--pl-ink);
+  color: var(--pl-ink);
+}
+.planes__co-back:active {
+  background: rgba(35, 34, 43, 0.06);
 }
 .planes__steps {
   display: flex;

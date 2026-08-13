@@ -141,7 +141,7 @@ export default function Planes() {
   // ── Navegación interna ────────────────────────────────────────────────
   const [screen, setScreen] = useState<Screen>('landing');
   const [mode, setMode] = useState<Mode>('plan');
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [periodo, setPeriodo] = useState<Periodo>('MENSUAL');
 
   // ── Selección de plan / horarios ──────────────────────────────────────
@@ -449,7 +449,7 @@ export default function Planes() {
       setScreen('landing');
       setSel([]);
     } else {
-      setStep((s) => (s - 1) as 1 | 2 | 3);
+      setStep((s) => (s - 1) as 1 | 2);
     }
     scrollTop();
   };
@@ -831,25 +831,30 @@ export default function Planes() {
     <div className="planes planes--checkout">
       {/* Header del checkout */}
       <div className="planes__co-head">
-        <button type="button" className="planes__co-back" onClick={volver} aria-label="Volver">
-          ←
+        <button
+          type="button"
+          className="planes__co-back"
+          onClick={volver}
+          aria-label={step === 1 ? 'Volver a la sede' : 'Volver al paso anterior'}
+        >
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M19 12H5" />
+            <path d="M12 19l-7-7 7-7" />
+          </svg>
         </button>
-        {step < 4 && (
-          <div className="planes__steps">
-            {pasosDef.map((label, i) => {
-              const n = i + 1;
-              const state = step === n ? 'active' : step > n ? 'done' : 'todo';
-              // En modo prueba el paso 1 es "elegir clase", no "horarios".
-              const txt =
-                mode === 'prueba' && n === 1 ? '1 · Clase' : label;
-              return (
-                <span key={label} className={`planes__step planes__step--${state}`}>
-                  {txt}
-                </span>
-              );
-            })}
-          </div>
-        )}
+        <div className="planes__steps">
+          {pasosDef.map((label, i) => {
+            const n = i + 1;
+            const state = step === n ? 'active' : step > n ? 'done' : 'todo';
+            // En modo prueba el paso 1 es "elegir clase", no "horarios".
+            const txt = mode === 'prueba' && n === 1 ? '1 · Clase' : label;
+            return (
+              <span key={label} className={`planes__step planes__step--${state}`}>
+                {txt}
+              </span>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── Paso 1 ── */}
@@ -904,7 +909,9 @@ export default function Planes() {
             <>
               <h2 className="planes__co-title">Elegí tu clase de prueba</h2>
               <p className="planes__co-sub">
-                Cupos reales de los próximos 14 días.
+                Lugares para los próximos días. Recordá que si te querés quedar
+                con nosotros, el valor de la clase de prueba se descuenta del
+                plan que elijas.
               </p>
               <div className="planes__co-grilla">
                 <GrillaClases clases={clases} onElegir={elegirClasePrueba} />
