@@ -27,7 +27,12 @@ import { ErrorBanner } from '../components/ui/ErrorBanner';
 import { GrillaClases } from '../components/ui/GrillaClases';
 import { SedeGaleria } from '../components/ui/SedeGaleria';
 import { Iso } from '../components/brand/Iso';
-import { formatDayShort, formatPrice, formatTime } from '../lib/format';
+import {
+  diaSemanaDe,
+  formatDayShort,
+  formatPrice,
+  formatTime,
+} from '../lib/format';
 import { trackEvent, trackVenta } from '../lib/analytics';
 import { trackMetaEvent } from '../lib/meta';
 import './Planes.css';
@@ -104,6 +109,37 @@ function precioLista(tipo: CatalogoTipoPlan): number | null {
   return (
     tipo.precios.efectivo ?? tipo.precios.debito ?? tipo.precios.tarjeta ?? null
   );
+}
+
+/**
+ * `true` si la tarjeta no ofrece horarios fijos y solo se puede comprar como
+ * pack.
+ *
+ * El catálogo llama `fijo` al plan vinculado en `TipoPlan.plan` sin mirar su
+ * modalidad. En una sede que solo vende packs, ahí hay un PACK y `flexible`
+ * queda vacío: `ingresosPorSemana` en null es la señal de que ese plan no es
+ * de horario fijo. Sin esto, la única modalidad ofrecida era "Horarios fijos",
+ * que es lo contrario de lo que la sede vende, y el checkout moría pidiendo
+ * horarios que el backend nunca iba a devolver.
+ */
+function esSoloPack(tipo: CatalogoTipoPlan | null): boolean {
+  return tipo != null && tipo.fijo.ingresosPorSemana == null;
+}
+
+/**
+ * Plan y precios que corresponden a la modalidad elegida.
+ *
+ * En las sedes que solo venden packs no hay variante `flexible`: el pack ES el
+ * plan vinculado como `fijo`, así que la modalidad flexible sale de ahí.
+ */
+function variantePlan(
+  tipo: CatalogoTipoPlan,
+  flex: boolean,
+): { planId: number; precios: CatalogoTipoPlan['precios'] } {
+  if (flex && tipo.flexible) {
+    return { planId: tipo.flexible.planId, precios: tipo.flexible.precios };
+  }
+  return { planId: tipo.fijo.planId, precios: tipo.precios };
 }
 
 /**
@@ -394,14 +430,27 @@ export default function Planes() {
     if (diasChips.length > 0) setDia(diasChips[0].key);
   }, [screen, step, mode, modalidad, dia, diasChips]);
 
-  // Grilla semanal de la sede: los mismos horarios agrupados por día. Es lo
-  // que se muestra como referencia en el pack flexible.
+  // Grilla semanal de la sede, como referencia en el pack flexible.
+  //
+  // Sale de los horarios fijables del plan cuando los hay. En las sedes que
+  // solo venden packs no hay plan de horario fijo y ese endpoint responde 404,
+  // así que se arma con las clases reales de los próximos días, que ya están
+  // cargadas y describen la misma grilla.
   const grillaSemanal = useMemo(() => {
     const map = new Map<DiaSemana, string[]>();
-    for (const h of horariosData) {
-      const arr = map.get(h.diaSemana) ?? [];
-      arr.push(hhmm(h.horaInicio));
-      map.set(h.diaSemana, arr);
+    if (horariosData.length > 0) {
+      for (const h of horariosData) {
+        const arr = map.get(h.diaSemana) ?? [];
+        arr.push(hhmm(h.horaInicio));
+        map.set(h.diaSemana, arr);
+      }
+    } else {
+      for (const c of clases) {
+        const d = diaSemanaDe(c.inicio) as DiaSemana;
+        const arr = map.get(d) ?? [];
+        arr.push(formatTime(c.inicio));
+        map.set(d, arr);
+      }
     }
     return Array.from(map.entries())
       .sort(([a], [b]) => DIA_INFO[a].orden - DIA_INFO[b].orden)
@@ -410,7 +459,7 @@ export default function Planes() {
         label: DIA_INFO[diaSemana].corto,
         horas: Array.from(new Set(horas)).sort(),
       }));
-  }, [horariosData]);
+  }, [horariosData, clases]);
 
   // Slots del día activo.
   const slots = useMemo(
@@ -479,7 +528,9 @@ export default function Planes() {
   const empezarPlan = (t: CatalogoTipoPlan) => {
     setMode('plan');
     setTipoId(t.id);
-    setModalidad(null);
+    // Si la sede no vende horarios fijos no hay nada que preguntar: la única
+    // modalidad posible es el pack.
+    setModalidad(esSoloPack(t) ? 'flex' : null);
     setMedio('online');
     setSel([]);
     setDia('');
@@ -519,7 +570,9 @@ export default function Planes() {
   }, [mode, modalidad, tipoSel, sede]);
 
   // Precio a cobrar según modalidad + medio (online = tarjeta; débito = débito).
-  const preciosPlanSel = flex ? tipoSel?.flexible?.precios : tipoSel?.precios;
+  const preciosPlanSel = tipoSel
+    ? variantePlan(tipoSel, flex).precios
+    : undefined;
   const precioCheckout = preciosPlanSel
     ? medio === 'online'
       ? preciosPlanSel.tarjeta ?? preciosPlanSel.efectivo
@@ -561,7 +614,7 @@ export default function Planes() {
   // Pago del PLAN: real, vía checkoutPlan() → Mercado Pago.
   const pagarPlan = async () => {
     if (!sede || !tipoSel || submitting) return;
-    const planId = flex ? tipoSel.flexible?.planId : tipoSel.fijo.planId;
+    const { planId } = variantePlan(tipoSel, flex);
     if (planId == null) return;
     setSubmitting(true);
     setSubmitError(null);
@@ -985,8 +1038,16 @@ export default function Planes() {
           {pasosDef.map((label, i) => {
             const n = i + 1;
             const state = step === n ? 'active' : step > n ? 'done' : 'todo';
-            // En modo prueba el paso 1 es "elegir clase", no "horarios".
-            const txt = mode === 'prueba' && n === 1 ? '1 · Clase' : label;
+            // El paso 1 no siempre es elegir horarios: en prueba se elige una
+            // clase, y en una sede que solo vende packs no se elige nada.
+            const txt =
+              n !== 1
+                ? label
+                : mode === 'prueba'
+                  ? '1 · Clase'
+                  : esSoloPack(tipoSel)
+                    ? '1 · Plan'
+                    : label;
             return (
               <span key={label} className={`planes__step planes__step--${state}`}>
                 {txt}
@@ -1012,7 +1073,10 @@ export default function Planes() {
       {/* ── Paso 1 ── */}
       {step === 1 && (
         <div className="planes__co-body">
-          {mode === 'plan' && (
+          {/* La pregunta de modalidad no se hace si hay una sola respuesta
+              posible: en una sede que solo vende packs, ofrecer "Horarios
+              fijos" era ofrecer lo que no existe. */}
+          {mode === 'plan' && !esSoloPack(tipoSel) && (
             <>
               <h2 className="planes__co-title">¿Cómo querés usar tus clases?</h2>
               <div className="planes__modes">
@@ -1184,14 +1248,28 @@ export default function Planes() {
               resolver antes de pagar — si la grilla de la sede te sirve. */}
           {mode === 'plan' && flex && (
             <div className="planes__grid-wrap">
+              {/* Sin la pregunta de modalidad arriba, el paso arrancaba
+                  directo en el colapsable y no se entendía qué se compra. */}
+              {esSoloPack(tipoSel) && (
+                <>
+                  <h2 className="planes__co-title">Cómo funciona tu pack</h2>
+                  <p className="planes__co-sub">
+                    Reservás cada clase desde la app según la disponibilidad del
+                    momento. No hay horarios fijos asignados.
+                  </p>
+                </>
+              )}
               <details className="planes__grilla">
                 <summary className="planes__grilla-sum">
                   Ver grilla horaria
                 </summary>
                 <div className="planes__grilla-body">
-                  {horarios.status === 'loading' ? (
+                  {/* El error del endpoint no alcanza para dar la grilla por
+                      perdida: en las sedes sin plan fijo siempre responde 404 y
+                      la grilla igual se arma con las clases reales. */}
+                  {horarios.status === 'loading' && grillaSemanal.length === 0 ? (
                     <Loading label="Cargando horarios" />
-                  ) : horarios.status === 'error' || grillaSemanal.length === 0 ? (
+                  ) : grillaSemanal.length === 0 ? (
                     <p className="planes__grilla-nota">
                       No pudimos cargar la grilla. Escribinos por WhatsApp y te
                       la pasamos.

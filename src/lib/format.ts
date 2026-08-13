@@ -99,3 +99,26 @@ export function nombreConInicial(nombre: string | null | undefined): string | nu
   const apellido = partes[partes.length - 1];
   return `${partes[0]} ${apellido.charAt(0).toUpperCase()}.`;
 }
+
+const DIA_SEMANA: Record<string, string> = {
+  Sunday: 'DOMINGO',
+  Monday: 'LUNES',
+  Tuesday: 'MARTES',
+  Wednesday: 'MIERCOLES',
+  Thursday: 'JUEVES',
+  Friday: 'VIERNES',
+  Saturday: 'SABADO',
+};
+
+/**
+ * Día de la semana de una fecha ISO, con los nombres que usa el backend
+ * (`LUNES`, `MARTES`, …). Va por la zona horaria de Buenos Aires, así una clase
+ * de las 23:00 no cae en el día siguiente.
+ */
+export function diaSemanaDe(iso: string): string {
+  const nombre = new Intl.DateTimeFormat('en-US', {
+    timeZone: TZ,
+    weekday: 'long',
+  }).format(new Date(iso));
+  return DIA_SEMANA[nombre] ?? 'LUNES';
+}
