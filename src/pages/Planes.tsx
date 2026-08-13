@@ -64,7 +64,13 @@ type LoadState =
   | { status: 'loading' }
   | { status: 'notfound' }
   | { status: 'error'; message: string }
-  | { status: 'ok'; sede: Sede; tipos: CatalogoTipoPlan[]; clases: Clase[] };
+  | {
+      status: 'ok';
+      sede: Sede;
+      tipos: CatalogoTipoPlan[];
+      clases: Clase[];
+      caracteristicas: string[];
+    };
 
 type HorariosState =
   | { status: 'idle' }
@@ -135,7 +141,7 @@ export default function Planes() {
   // ── Navegación interna ────────────────────────────────────────────────
   const [screen, setScreen] = useState<Screen>('landing');
   const [mode, setMode] = useState<Mode>('plan');
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [periodo, setPeriodo] = useState<Periodo>('MENSUAL');
 
   // ── Selección de plan / horarios ──────────────────────────────────────
@@ -180,6 +186,7 @@ export default function Planes() {
           sede,
           tipos: cat?.tipos ?? [],
           clases,
+          caracteristicas: cat?.caracteristicas ?? [],
         });
       })
       .catch((err) =>
@@ -260,14 +267,13 @@ export default function Planes() {
     [tipos, periodo],
   );
 
-  // Solo las características de los planes que se están mostrando: si se
-  // juntan todas, con "Mensual" elegido el checklist dice "Vence a los 30
-  // días" y "Vence a los 90 días" al mismo tiempo.
-  const beneficios = useMemo(() => {
-    const set = new Set<string>();
-    for (const t of planes) for (const c of t.caracteristicas) set.add(c);
-    return set.size > 0 ? Array.from(set).slice(0, 6) : BENEFICIOS_FALLBACK;
-  }, [planes]);
+  // El checklist es uno solo de la sede. Antes se juntaban las características
+  // de cada tarjeta, se deduplicaban y se cortaban en 6, porque las 6 tarjetas
+  // repetían la misma lista y no había forma de saber cuál era la buena.
+  const beneficios =
+    load.status === 'ok' && load.caracteristicas.length > 0
+      ? load.caracteristicas
+      : BENEFICIOS_FALLBACK;
 
   const tipoSel = useMemo(
     () => tipos.find((t) => t.id === tipoId) ?? null,
@@ -443,7 +449,7 @@ export default function Planes() {
       setScreen('landing');
       setSel([]);
     } else {
-      setStep((s) => (s - 1) as 1 | 2 | 3);
+      setStep((s) => (s - 1) as 1 | 2);
     }
     scrollTop();
   };
@@ -825,25 +831,30 @@ export default function Planes() {
     <div className="planes planes--checkout">
       {/* Header del checkout */}
       <div className="planes__co-head">
-        <button type="button" className="planes__co-back" onClick={volver} aria-label="Volver">
-          ←
+        <button
+          type="button"
+          className="planes__co-back"
+          onClick={volver}
+          aria-label={step === 1 ? 'Volver a la sede' : 'Volver al paso anterior'}
+        >
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M19 12H5" />
+            <path d="M12 19l-7-7 7-7" />
+          </svg>
         </button>
-        {step < 4 && (
-          <div className="planes__steps">
-            {pasosDef.map((label, i) => {
-              const n = i + 1;
-              const state = step === n ? 'active' : step > n ? 'done' : 'todo';
-              // En modo prueba el paso 1 es "elegir clase", no "horarios".
-              const txt =
-                mode === 'prueba' && n === 1 ? '1 · Clase' : label;
-              return (
-                <span key={label} className={`planes__step planes__step--${state}`}>
-                  {txt}
-                </span>
-              );
-            })}
-          </div>
-        )}
+        <div className="planes__steps">
+          {pasosDef.map((label, i) => {
+            const n = i + 1;
+            const state = step === n ? 'active' : step > n ? 'done' : 'todo';
+            // En modo prueba el paso 1 es "elegir clase", no "horarios".
+            const txt = mode === 'prueba' && n === 1 ? '1 · Clase' : label;
+            return (
+              <span key={label} className={`planes__step planes__step--${state}`}>
+                {txt}
+              </span>
+            );
+          })}
+        </div>
       </div>
 
       {/* ── Paso 1 ── */}
@@ -898,7 +909,8 @@ export default function Planes() {
             <>
               <h2 className="planes__co-title">Elegí tu clase de prueba</h2>
               <p className="planes__co-sub">
-                Cupos reales de los próximos 14 días.
+                Recordá que si te querés quedar con nosotros, el valor de la
+                clase de prueba se descuenta del plan que elijas.
               </p>
               <div className="planes__co-grilla">
                 <GrillaClases clases={clases} onElegir={elegirClasePrueba} />
@@ -956,11 +968,10 @@ export default function Planes() {
                     {slots.map((s) => {
                       const on = sel.includes(s.key);
                       const lleno = s.cupos <= 0;
-                      const cuposTxt = lleno
-                        ? 'Completo'
-                        : s.cupos === 1
-                          ? 'Queda 1'
-                          : `${s.cupos} lugares aprox.`;
+                      // Sin números: el cupo de un horario recurrente es el de
+                      // su próxima clase, no el que se va a encontrar cada
+                      // semana. Solo importa si el horario se puede tomar o no.
+                      const cuposTxt = lleno ? 'Completo' : null;
                       return (
                         <button
                           key={s.key}
@@ -970,7 +981,9 @@ export default function Planes() {
                           onClick={() => toggleSlot(s.key)}
                         >
                           <span className="planes__slot-hora">{s.hora}</span>
-                          <span className="planes__slot-cupos">{cuposTxt}</span>
+                          {cuposTxt && (
+                            <span className="planes__slot-cupos">{cuposTxt}</span>
+                          )}
                         </button>
                       );
                     })}
