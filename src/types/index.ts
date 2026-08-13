@@ -46,6 +46,8 @@ export interface CheckoutPayload {
   apellido: string;
   email: string;
   telefono: string;
+  /** Opcional en el endpoint. El checkout de planes no lo recibe. */
+  dni?: string;
 }
 
 export interface CheckoutResponse {
@@ -53,6 +55,12 @@ export interface CheckoutResponse {
 }
 
 export interface CatalogoPrecios {
+  /**
+   * Precio de la venta online. Es el que se publica y el que se cobra.
+   * Opcional mientras el backend no lo mande: hasta entonces se cae a
+   * `efectivo`, que es el que coincide con él en 188 de 207 planes.
+   */
+  transferencia?: number | null;
   efectivo: number | null;
   debito: number | null;
   tarjeta: number | null;
