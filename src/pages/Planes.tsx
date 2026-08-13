@@ -916,18 +916,12 @@ export default function Planes() {
           <div className="planes__cards">
             {planes.map((t) => {
               const precio = precioLista(t);
-              const tarjeta = t.precios.tarjeta;
-              // En un trimestral la comparación que importa es contra pagar
-              // mes a mes; el precio con tarjeta se reserva para los mensuales,
-              // donde es la única otra referencia que hay.
-              const ahorroMensual = ahorroVsMensual(t, tipos);
-              const ahorroCredito =
-                precio != null && tarjeta != null && tarjeta > 0 && precio < tarjeta
-                  ? Math.round((1 - precio / tarjeta) * 100)
-                  : null;
-              const ahorroPct = ahorroMensual ?? ahorroCredito;
-              const ahorroTxt =
-                ahorroMensual != null ? 'vs mes a mes' : 'vs crédito';
+              // Solo los trimestrales muestran ahorro, contra pagar mes a mes.
+              // Los mensuales lo comparaban contra el precio con tarjeta de
+              // crédito, que en la venta online no se cobra nunca: Mercado Pago
+              // crea la preferencia con un solo importe, elija lo que elija la
+              // persona adentro. Era prometer un ahorro que no existe.
+              const ahorroPct = ahorroVsMensual(t, tipos);
               return (
                 <article
                   key={t.id}
@@ -950,7 +944,7 @@ export default function Planes() {
                   {ahorroPct != null && ahorroPct > 0 && (
                     <span className="planes__card-save">
                       <span className="planes__card-save-dot" />
-                      Ahorrás {ahorroPct}% {ahorroTxt}
+                      Ahorrás {ahorroPct}% vs mes a mes
                     </span>
                   )}
                   <button
