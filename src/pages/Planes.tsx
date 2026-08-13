@@ -106,6 +106,55 @@ function precioLista(tipo: CatalogoTipoPlan): number | null {
   );
 }
 
+interface DatosResumen {
+  titulo: string;
+  sedeNombre?: string;
+  /** Una línea por horario elegido. Vacío mientras no eligió nada. */
+  items: string[];
+  /** Qué decir mientras `items` está vacío. */
+  pendiente: string;
+  totalLabel: string;
+  total: number | null;
+  fine: string;
+}
+
+/**
+ * Lo que se está por comprar. En mobile aparece solo en el paso de pago, como
+ * siempre; en desktop vive en la columna derecha y acompaña los tres pasos, así
+ * que tiene que verse bien también a medio completar.
+ */
+function ResumenCompra({ datos }: { datos: DatosResumen }) {
+  return (
+    <div className="planes__summary">
+      <div className="planes__summary-top">
+        <span className="planes__summary-plan">{datos.titulo}</span>
+        <span className="planes__summary-sede">{datos.sedeNombre}</span>
+      </div>
+      <div className="planes__summary-line" />
+      <div className="planes__summary-items">
+        {datos.items.length === 0 ? (
+          <p className="planes__summary-pend">{datos.pendiente}</p>
+        ) : (
+          datos.items.map((txt, i) => (
+            <div key={i} className="planes__summary-item">
+              <span className="planes__summary-check">✓</span>
+              {txt}
+            </div>
+          ))
+        )}
+      </div>
+      <div className="planes__summary-line" />
+      <div className="planes__summary-total">
+        <span>{datos.totalLabel}</span>
+        <span className="planes__summary-total-val">
+          {formatPrice(datos.total)}
+        </span>
+      </div>
+      <p className="planes__summary-fine">{datos.fine}</p>
+    </div>
+  );
+}
+
 function validate(form: {
   nombre: string;
   apellido: string;
@@ -827,6 +876,44 @@ export default function Planes() {
   const precioSel = tipoSel ? precioLista(tipoSel) : sede?.precioPrueba ?? null;
   const selOrdenado = [...sel].sort((a, b) => a.localeCompare(b));
 
+  // Lo elegido hasta acá. En desktop acompaña los tres pasos desde la columna
+  // derecha, así que tiene que aguantar que todavía no haya nada elegido.
+  const resumen: DatosResumen = {
+    titulo:
+      mode === 'prueba'
+        ? clases.find((c) => String(c.id) === sel[0])?.actividad.nombre ??
+          'Clase de prueba'
+        : tipoSel?.etiqueta || tipoSel?.nombre || 'Tu plan',
+    sedeNombre: sede?.nombre,
+    items:
+      mode === 'prueba'
+        ? selOrdenado.map((k) => `${labelDeSel(k)} hs`)
+        : flex
+          ? [
+              'Pack flexible · reservás desde la app',
+              ...selOrdenado.map((k) => `Primera clase: ${labelDeSel(k)} hs`),
+            ]
+          : selOrdenado.map((k) => `${labelDeSel(k)} hs · todas las semanas`),
+    pendiente:
+      mode === 'prueba'
+        ? 'Elegí tu clase para verla acá'
+        : modalidad == null
+          ? 'Elegí cómo querés usar tus clases'
+          : 'Elegí tus horarios para verlos acá',
+    totalLabel: `Total ${
+      mode === 'prueba'
+        ? 'clase de prueba'
+        : periodo === 'MENSUAL'
+          ? 'mensual'
+          : 'trimestral'
+    }`,
+    total: mode === 'prueba' ? precioSel : precioCheckout,
+    fine:
+      mode === 'prueba'
+        ? 'Si te quedás, este importe se descuenta de tu plan.'
+        : 'Sin permanencia. Precio del pago online con tarjeta.',
+  };
+
   return (
     <div className="planes planes--checkout">
       {/* Header del checkout */}
@@ -856,6 +943,19 @@ export default function Planes() {
           })}
         </div>
       </div>
+
+      <div className="planes__co-layout">
+        {/* El resumen va antes que el paso en el DOM porque en mobile tiene que
+            quedar arriba del medio de pago. En desktop la grilla lo manda a la
+            columna derecha, donde acompaña los tres pasos. */}
+        <aside
+          className={`planes__co-aside${step === 3 ? '' : ' planes__co-aside--desk'}`}
+        >
+          <h2 className="planes__co-title">Resumen</h2>
+          <ResumenCompra datos={resumen} />
+        </aside>
+
+        <div className="planes__co-main">
 
       {/* ── Paso 1 ── */}
       {step === 1 && (
@@ -1138,61 +1238,9 @@ export default function Planes() {
       {/* ── Paso 3: resumen + pago ── */}
       {step === 3 && (
         <div className="planes__co-body">
-          <h2 className="planes__co-title">Resumen</h2>
-          <div className="planes__summary">
-            <div className="planes__summary-top">
-              <span className="planes__summary-plan">
-                {mode === 'prueba'
-                  ? clases.find((c) => String(c.id) === sel[0])?.actividad.nombre ??
-                    'Clase de prueba'
-                  : `${tipoSel?.etiqueta || tipoSel?.nombre}`}
-              </span>
-              <span className="planes__summary-sede">{sede?.nombre}</span>
-            </div>
-            <div className="planes__summary-line" />
-            <div className="planes__summary-items">
-              {mode === 'prueba'
-                ? selOrdenado.map((k) => (
-                    <div key={k} className="planes__summary-item">
-                      <span className="planes__summary-check">✓</span>
-                      {labelDeSel(k)} hs
-                    </div>
-                  ))
-                : (flex
-                    ? [
-                        'Pack flexible · reservás desde la app',
-                        ...selOrdenado.map((k) => `Primera clase: ${labelDeSel(k)} hs`),
-                      ]
-                    : selOrdenado.map((k) => `${labelDeSel(k)} hs · todas las semanas`)
-                  ).map((txt, i) => (
-                    <div key={i} className="planes__summary-item">
-                      <span className="planes__summary-check">✓</span>
-                      {txt}
-                    </div>
-                  ))}
-            </div>
-            <div className="planes__summary-line" />
-            <div className="planes__summary-total">
-              <span>
-                Total{' '}
-                {mode === 'prueba'
-                  ? 'clase de prueba'
-                  : periodo === 'MENSUAL'
-                    ? 'mensual'
-                    : 'trimestral'}
-              </span>
-              <span className="planes__summary-total-val">
-                {formatPrice(mode === 'prueba' ? precioSel : precioCheckout)}
-              </span>
-            </div>
-            <p className="planes__summary-fine">
-              {mode === 'prueba'
-                ? 'Si te quedás, este importe se descuenta de tu plan.'
-                : 'Sin permanencia. Precio del pago online con tarjeta.'}
-            </p>
-          </div>
-
           {mode === 'plan' && (
+            <>
+              <h2 className="planes__co-title">Cómo querés pagar</h2>
             <div className="planes__medios">
               <button
                 type="button"
@@ -1207,6 +1255,7 @@ export default function Planes() {
                 <span className="planes__medio-desc">Próximamente</span>
               </button>
             </div>
+            </>
           )}
 
           {submitError && (
@@ -1227,6 +1276,8 @@ export default function Planes() {
         </div>
       )}
 
+        </div>
+      </div>
     </div>
   );
 }

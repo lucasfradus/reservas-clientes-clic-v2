@@ -1194,3 +1194,63 @@
     padding-top: 56px;
   }
 }
+
+/* ── Checkout: el resumen ── */
+/* En mobile solo se ve en el paso de pago; en el resto queda oculto y aparece
+   recién en desktop, donde hay una columna para él. */
+.planes__co-aside--desk {
+  display: none;
+}
+/* En mobile el paso de pago viene pegado abajo del resumen. */
+.planes__co-aside {
+  margin-bottom: 20px;
+}
+.planes__summary-pend {
+  font-size: 12px;
+  color: var(--pl-mute);
+  font-style: italic;
+}
+
+@media (min-width: 1024px) {
+  /* ── Checkout a dos columnas ────────────────────────────────────────
+     El paso activo a la izquierda y el resumen fijo a la derecha, para no
+     perder de vista qué se está comprando mientras se completa. La
+     colocación es explícita, así el resumen puede ir primero en el DOM
+     (que es lo que mobile necesita) y aun así caer en la columna derecha. */
+  .planes--checkout {
+    max-width: 1000px;
+  }
+  .planes__co-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 48px;
+    align-items: start;
+  }
+  .planes__co-main {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+  }
+  .planes__co-aside {
+    grid-column: 2;
+    grid-row: 1;
+    position: sticky;
+    top: 96px;
+  }
+  .planes__co-aside--desk {
+    display: block;
+  }
+  .planes__co-aside .planes__co-title {
+    font-size: 20px;
+    margin-bottom: 12px;
+  }
+
+  /* La grilla de clases queda en una columna. Se probó a dos y no entra: con
+     el aside al lado, cada columna daba ~270px, la fila se apilaba y el clic
+     al centro caía sobre el botón "+ info" en vez de elegir la clase. */
+
+  /* Los slots de horarios fijos tienen más lugar: seis por fila. */
+  .planes__slots {
+    grid-template-columns: repeat(6, 1fr);
+  }
+}
