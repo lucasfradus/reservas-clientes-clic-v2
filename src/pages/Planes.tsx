@@ -909,9 +909,8 @@ export default function Planes() {
             <>
               <h2 className="planes__co-title">Elegí tu clase de prueba</h2>
               <p className="planes__co-sub">
-                Lugares para los próximos días. Recordá que si te querés quedar
-                con nosotros, el valor de la clase de prueba se descuenta del
-                plan que elijas.
+                Recordá que si te querés quedar con nosotros, el valor de la
+                clase de prueba se descuenta del plan que elijas.
               </p>
               <div className="planes__co-grilla">
                 <GrillaClases clases={clases} onElegir={elegirClasePrueba} />
