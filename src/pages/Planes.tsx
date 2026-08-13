@@ -106,10 +106,20 @@ const BENEFICIOS_FALLBACK = [
   'Tu clase de prueba se descuenta del plan',
 ];
 
-/** Precio "de lista" para mostrar: efectivo/transferencia por defecto. */
+/**
+ * Precio de la venta online: el de "Transferencia MP", que es el que se publica
+ * y el que cobra Mercado Pago.
+ *
+ * El fallback a efectivo es transitorio, hasta que el catálogo mande el campo:
+ * los dos coinciden en 188 de los 207 planes de producción.
+ */
 function precioLista(tipo: CatalogoTipoPlan): number | null {
   return (
-    tipo.precios.efectivo ?? tipo.precios.debito ?? tipo.precios.tarjeta ?? null
+    tipo.precios.transferencia ??
+    tipo.precios.efectivo ??
+    tipo.precios.debito ??
+    tipo.precios.tarjeta ??
+    null
   );
 }
 
@@ -577,13 +587,15 @@ export default function Planes() {
     };
   }, [mode, modalidad, tipoSel, sede]);
 
-  // Precio a cobrar según modalidad + medio (online = tarjeta; débito = débito).
+  // Precio a cobrar según modalidad + medio. El pago único usa el mismo precio
+  // que se publica en la tarjeta (Transferencia MP): antes usaba el de tarjeta
+  // de crédito y el checkout terminaba mostrando ~10% más que la landing.
   const preciosPlanSel = tipoSel
     ? variantePlan(tipoSel, flex).precios
     : undefined;
   const precioCheckout = preciosPlanSel
     ? medio === 'online'
-      ? preciosPlanSel.tarjeta ?? preciosPlanSel.efectivo
+      ? preciosPlanSel.transferencia ?? preciosPlanSel.efectivo
       : preciosPlanSel.debito
     : null;
 
