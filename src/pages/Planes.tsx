@@ -968,11 +968,10 @@ export default function Planes() {
                     {slots.map((s) => {
                       const on = sel.includes(s.key);
                       const lleno = s.cupos <= 0;
-                      const cuposTxt = lleno
-                        ? 'Completo'
-                        : s.cupos === 1
-                          ? 'Queda 1'
-                          : `${s.cupos} lugares aprox.`;
+                      // Sin números: el cupo de un horario recurrente es el de
+                      // su próxima clase, no el que se va a encontrar cada
+                      // semana. Solo importa si el horario se puede tomar o no.
+                      const cuposTxt = lleno ? 'Completo' : null;
                       return (
                         <button
                           key={s.key}
@@ -982,7 +981,9 @@ export default function Planes() {
                           onClick={() => toggleSlot(s.key)}
                         >
                           <span className="planes__slot-hora">{s.hora}</span>
-                          <span className="planes__slot-cupos">{cuposTxt}</span>
+                          {cuposTxt && (
+                            <span className="planes__slot-cupos">{cuposTxt}</span>
+                          )}
                         </button>
                       );
                     })}
