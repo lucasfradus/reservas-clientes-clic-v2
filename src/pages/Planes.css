@@ -2,6 +2,9 @@
    columna mobile centrada, Prata para los títulos editoriales, Poppins light
    para el nombre de la sede y los importes, paleta taupe + ink. */
 .planes {
+  /* Ancla del link "Ver todas las sedes", que en mobile flota sobre el hero. */
+  position: relative;
+
   --pl-ink: #23222b;
   --pl-soft: #55534e;
   --pl-mute: #8a8880;
@@ -119,6 +122,10 @@
   align-items: center;
   justify-content: center;
 }
+/* Vive antes del hero en el DOM (en desktop va arriba de la tarjeta), pero en
+   mobile flota sobre la foto. El margen negativo del hero arrastra al
+   contenedor, así que ambos arrancan en el mismo punto y `top` se mide igual
+   que cuando el link era hijo del hero. */
 .planes__back-link {
   position: absolute;
   top: 16px;
@@ -132,6 +139,10 @@
 }
 .planes__back-link:hover {
   color: #fff;
+}
+/* La descripción de la sede solo entra en el hero de desktop. */
+.planes__hero-desc {
+  display: none;
 }
 /* Localidad y dirección en un solo renglón. */
 .planes__hero-place {
@@ -1069,4 +1080,221 @@
   color: var(--pl-mute);
   text-decoration: underline;
   margin-top: 6px;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DESKTOP (≥1024px)
+
+   Layout propio para pantalla grande. Todo lo de acá abajo vive dentro del
+   media query a propósito: el diseño mobile es el que está validado y el que
+   tiene el tráfico, así que no se toca ni una regla de la base. Entre 769 y
+   1023 sigue la columna, que es lo correcto en tablet vertical.
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+  .planes {
+    max-width: 1040px;
+    padding: 0 32px 64px;
+  }
+
+  /* Los bloques de texto no acompañan el ancho de la página: un párrafo a
+     1120px no se lee. Se topean y se centran. */
+  .planes__intro,
+  .planes__trust,
+  .planes__reminder {
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ── Hero: tarjeta con la foto y el cuerpo lado a lado ────────────────
+     Ni a sangre ni a pantalla completa. El 100dvh es un recurso de mobile,
+     donde la primera pantalla tiene que vender sola; en un monitor obliga a
+     scrollear una pantalla entera para enterarse de que hay planes, y la foto
+     no gana nada por medir 828px de alto en vez de 460. */
+  .planes__hero {
+    margin: 0;
+    /* min-height y no height: el cuerpo tiene una línea más que el sitio viejo
+       (el link a planes) y con alto fijo el overflow del hero recortaba los
+       accesos de WhatsApp y mapa. */
+    min-height: 460px;
+    border-radius: 28px;
+    box-shadow:
+      0 2px 6px rgba(35, 34, 43, 0.06),
+      0 24px 48px -24px rgba(35, 34, 43, 0.45);
+    display: grid;
+    grid-template-columns: 44fr 56fr;
+    align-items: stretch;
+  }
+  /* Arriba de la tarjeta, no encima de la foto: sobre una foto clara no se
+     leía. */
+  .planes__back-link {
+    position: static;
+    display: inline-block;
+    margin-bottom: 16px;
+    color: var(--pl-mute);
+    text-shadow: none;
+  }
+  .planes__back-link:hover {
+    color: var(--pl-ink);
+  }
+  .planes__hero-desc {
+    display: block;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    font-size: 13px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.72);
+    max-width: 42ch;
+  }
+  .planes__hero-media {
+    position: relative;
+    inset: auto;
+    height: 100%;
+  }
+  .planes__hero-media::after {
+    background: linear-gradient(
+      to right,
+      transparent 60%,
+      rgba(35, 34, 43, 0.35) 100%
+    );
+  }
+  .planes__hero-body {
+    justify-content: center;
+    padding: 40px 44px;
+    gap: 4px;
+  }
+  .planes__hero-name {
+    font-size: 44px;
+  }
+  .planes__hero-price {
+    font-size: 34px;
+  }
+  .planes__hero-gap {
+    margin-top: 22px;
+  }
+  .planes__hero-place,
+  .planes__hero-note {
+    font-size: 13px;
+  }
+  /* El CTA a 430px ocupaba todo el ancho; a 560 queda desmesurado. */
+  .planes__hero-cta {
+    align-self: flex-start;
+    padding: 16px 40px;
+  }
+  .planes__hero-link {
+    align-self: flex-start;
+  }
+  .planes__hero-links {
+    justify-content: flex-start;
+    gap: 28px;
+  }
+  .planes__back-link {
+    top: 24px;
+    left: 32px;
+  }
+
+  /* ── Planes: las tres tarjetas en una fila ────────────────────────────
+     Con alturas distintas según la descripción, así que el CTA se despega
+     al piso con margin-top auto y las tres quedan alineadas abajo. */
+  .planes__toggle-wrap {
+    max-width: 420px;
+    margin: 0 auto;
+  }
+  .planes__cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    align-items: stretch;
+    gap: 20px;
+    padding-top: 24px;
+  }
+  .planes__card {
+    padding: 30px 26px;
+  }
+  .planes__card-cta {
+    margin-top: auto;
+  }
+  /* El precio y el ahorro se separan del CTA, que ahora queda abajo de todo. */
+  .planes__card-price-row {
+    margin-bottom: 4px;
+  }
+  .planes__card-save {
+    margin-bottom: 22px;
+  }
+
+  /* ── Beneficios a dos columnas ────────────────────────────────────── */
+  .planes__benefits {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: 40px;
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .planes__divider {
+    max-width: 640px;
+    margin: 0 auto;
+    padding-top: 56px;
+  }
+}
+
+/* ── Checkout: el resumen ── */
+/* En mobile solo se ve en el paso de pago; en el resto queda oculto y aparece
+   recién en desktop, donde hay una columna para él. */
+.planes__co-aside--desk {
+  display: none;
+}
+/* En mobile el paso de pago viene pegado abajo del resumen. */
+.planes__co-aside {
+  margin-bottom: 20px;
+}
+.planes__summary-pend {
+  font-size: 12px;
+  color: var(--pl-mute);
+  font-style: italic;
+}
+
+@media (min-width: 1024px) {
+  /* ── Checkout a dos columnas ────────────────────────────────────────
+     El paso activo a la izquierda y el resumen fijo a la derecha, para no
+     perder de vista qué se está comprando mientras se completa. La
+     colocación es explícita, así el resumen puede ir primero en el DOM
+     (que es lo que mobile necesita) y aun así caer en la columna derecha. */
+  .planes--checkout {
+    max-width: 1000px;
+  }
+  .planes__co-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 48px;
+    align-items: start;
+  }
+  .planes__co-main {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+  }
+  .planes__co-aside {
+    grid-column: 2;
+    grid-row: 1;
+    position: sticky;
+    top: 96px;
+  }
+  .planes__co-aside--desk {
+    display: block;
+  }
+  .planes__co-aside .planes__co-title {
+    font-size: 20px;
+    margin-bottom: 12px;
+  }
+
+  /* La grilla de clases queda en una columna. Se probó a dos y no entra: con
+     el aside al lado, cada columna daba ~270px, la fila se apilaba y el clic
+     al centro caía sobre el botón "+ info" en vez de elegir la clase. */
+
+  /* Los slots de horarios fijos tienen más lugar: seis por fila. */
+  .planes__slots {
+    grid-template-columns: repeat(6, 1fr);
+  }
 }
