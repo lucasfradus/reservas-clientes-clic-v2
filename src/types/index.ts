@@ -134,5 +134,7 @@ export interface CatalogoSede {
   sedeId: number;
   sedeNombre: string;
   sedeSlug: string;
+  /** Checklist único de la sede. El de cada tipo quedó solo para el sitio v1. */
+  caracteristicas: string[];
   tipos: CatalogoTipoPlan[];
 }
