@@ -106,6 +106,43 @@ function precioLista(tipo: CatalogoTipoPlan): number | null {
   );
 }
 
+/**
+ * Cuánto se ahorra un trimestral contra pagar el mismo plan mes a mes.
+ *
+ * La comparación honesta de un trimestral no es contra el precio con tarjeta
+ * del mismo plan (eso mide el recargo de la financiación, no la conveniencia
+ * del trimestre): es contra tres meses del mensual equivalente. En las sedes
+ * reales da entre 15% y 22%, contra el 13% que salía comparando medios de pago.
+ *
+ * El equivalente se busca por `ingresosPorSemana`, que es lo que define la
+ * intensidad del plan (1, 2 o 3 clases por semana). Hot Clic no lo tiene
+ * cargado en ninguna tarjeta, así que ahí se cae a `orden`, que en las 11 sedes
+ * mantiene el mismo lugar en las dos frecuencias.
+ */
+function ahorroVsMensual(
+  tipo: CatalogoTipoPlan,
+  tipos: CatalogoTipoPlan[],
+): number | null {
+  if (tipo.frecuencia !== 'TRIMESTRAL') return null;
+
+  const mensuales = tipos.filter((t) => t.frecuencia === 'MENSUAL');
+  const ips = tipo.fijo.ingresosPorSemana;
+  const candidatos =
+    ips != null
+      ? mensuales.filter((m) => m.fijo.ingresosPorSemana === ips)
+      : mensuales.filter((m) => m.orden === tipo.orden);
+  // Con más de uno no se puede saber cuál es el equivalente: mejor no afirmar.
+  if (candidatos.length !== 1) return null;
+
+  const mensual = precioLista(candidatos[0]);
+  const trimestral = precioLista(tipo);
+  if (mensual == null || trimestral == null || mensual <= 0) return null;
+
+  const tresMeses = mensual * 3;
+  if (trimestral >= tresMeses) return null;
+  return Math.round((1 - trimestral / tresMeses) * 100);
+}
+
 interface DatosResumen {
   titulo: string;
   sedeNombre?: string;
@@ -788,10 +825,17 @@ export default function Planes() {
             {planes.map((t) => {
               const precio = precioLista(t);
               const tarjeta = t.precios.tarjeta;
-              const ahorroPct =
+              // En un trimestral la comparación que importa es contra pagar
+              // mes a mes; el precio con tarjeta se reserva para los mensuales,
+              // donde es la única otra referencia que hay.
+              const ahorroMensual = ahorroVsMensual(t, tipos);
+              const ahorroCredito =
                 precio != null && tarjeta != null && tarjeta > 0 && precio < tarjeta
                   ? Math.round((1 - precio / tarjeta) * 100)
                   : null;
+              const ahorroPct = ahorroMensual ?? ahorroCredito;
+              const ahorroTxt =
+                ahorroMensual != null ? 'vs mes a mes' : 'vs crédito';
               return (
                 <article
                   key={t.id}
@@ -814,7 +858,7 @@ export default function Planes() {
                   {ahorroPct != null && ahorroPct > 0 && (
                     <span className="planes__card-save">
                       <span className="planes__card-save-dot" />
-                      Ahorrás {ahorroPct}% vs crédito
+                      Ahorrás {ahorroPct}% {ahorroTxt}
                     </span>
                   )}
                   <button
