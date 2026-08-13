@@ -46,6 +46,8 @@ export interface CheckoutPayload {
   apellido: string;
   email: string;
   telefono: string;
+  /** Opcional en el endpoint. El checkout de planes no lo recibe. */
+  dni?: string;
 }
 
 export interface CheckoutResponse {

@@ -29,9 +29,11 @@ import { SedeGaleria } from '../components/ui/SedeGaleria';
 import { Iso } from '../components/brand/Iso';
 import {
   diaSemanaDe,
+  formatDayLong,
   formatDayShort,
   formatPrice,
   formatTime,
+  nombreConInicial,
 } from '../lib/format';
 import { trackEvent, trackVenta } from '../lib/analytics';
 import { trackMetaEvent } from '../lib/meta';
@@ -180,50 +182,55 @@ function ahorroVsMensual(
 }
 
 interface DatosResumen {
+  eyebrow: string;
   titulo: string;
   sedeNombre?: string;
-  /** Una línea por horario elegido. Vacío mientras no eligió nada. */
-  items: string[];
-  /** Qué decir mientras `items` está vacío. */
+  /** Etiqueta y valor, como "Fecha / Jueves, 13 de agosto · 19:00". */
+  filas: { label: string; value: string }[];
+  /** Qué decir mientras no hay filas. */
   pendiente: string;
   totalLabel: string;
   total: number | null;
-  fine: string;
 }
 
 /**
- * Lo que se está por comprar. En mobile aparece solo en el paso de pago, como
- * siempre; en desktop vive en la columna derecha y acompaña los tres pasos, así
- * que tiene que verse bien también a medio completar.
+ * Lo que se está por comprar. En mobile aparece solo en el paso de datos, y en
+ * desktop vive en la columna derecha, así que tiene que verse bien también a
+ * medio completar.
  */
 function ResumenCompra({ datos }: { datos: DatosResumen }) {
   return (
     <div className="planes__summary">
-      <div className="planes__summary-top">
-        <span className="planes__summary-plan">{datos.titulo}</span>
-        <span className="planes__summary-sede">{datos.sedeNombre}</span>
-      </div>
+      <span className="planes__summary-eyebrow">{datos.eyebrow}</span>
+      <p className="planes__summary-plan">{datos.titulo}</p>
+      <p className="planes__summary-sede">{datos.sedeNombre}</p>
+
       <div className="planes__summary-line" />
-      <div className="planes__summary-items">
-        {datos.items.length === 0 ? (
+      <div className="planes__summary-rows">
+        {datos.filas.length === 0 ? (
           <p className="planes__summary-pend">{datos.pendiente}</p>
         ) : (
-          datos.items.map((txt, i) => (
-            <div key={i} className="planes__summary-item">
-              <span className="planes__summary-check">✓</span>
-              {txt}
+          datos.filas.map((f, i) => (
+            <div key={i} className="planes__summary-row">
+              <span className="planes__summary-row-lbl">{f.label}</span>
+              <span className="planes__summary-row-val">{f.value}</span>
             </div>
           ))
         )}
       </div>
+
       <div className="planes__summary-line" />
       <div className="planes__summary-total">
-        <span>{datos.totalLabel}</span>
+        <span className="planes__summary-total-lbl">{datos.totalLabel}</span>
         <span className="planes__summary-total-val">
           {formatPrice(datos.total)}
         </span>
       </div>
-      <p className="planes__summary-fine">{datos.fine}</p>
+
+      <div className="planes__summary-mp">
+        <span className="planes__summary-mp-chip">MP</span>
+        Pago seguro vía Mercado Pago
+      </div>
     </div>
   );
 }
@@ -263,7 +270,7 @@ export default function Planes() {
   // ── Navegación interna ────────────────────────────────────────────────
   const [screen, setScreen] = useState<Screen>('landing');
   const [mode, setMode] = useState<Mode>('plan');
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2>(1);
   const [periodo, setPeriodo] = useState<Periodo>('MENSUAL');
 
   // ── Selección de plan / horarios ──────────────────────────────────────
@@ -281,6 +288,7 @@ export default function Planes() {
     apellido: '',
     email: '',
     telefono: '',
+    dni: '',
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitting, setSubmitting] = useState(false);
@@ -588,7 +596,7 @@ export default function Planes() {
       setScreen('landing');
       setSel([]);
     } else {
-      setStep((s) => (s - 1) as 1 | 2);
+      setStep(1);
     }
     scrollTop();
   };
@@ -597,18 +605,23 @@ export default function Planes() {
     (field: keyof typeof form) => (e: FormEvent<HTMLInputElement>) => {
       const value = (e.target as HTMLInputElement).value;
       setForm((f) => ({ ...f, [field]: value }));
-      if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
+      // El DNI no se valida, así que no tiene error que limpiar.
+      if (field !== 'dni' && errors[field]) {
+        setErrors((prev) => ({ ...prev, [field]: undefined }));
+      }
     };
 
-  const continuar2 = (e: FormEvent<HTMLFormElement>) => {
+  // Datos y pago viven en la misma pantalla: el submit del formulario es el
+  // que dispara el pago, sin un paso intermedio de confirmación.
+  const pagar = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const v = validate(form);
     if (Object.keys(v).length > 0) {
       setErrors(v);
       return;
     }
-    setStep(3);
-    scrollTop();
+    if (mode === 'prueba') pagarPrueba();
+    else pagarPlan();
   };
 
   // Pago del PLAN: real, vía checkoutPlan() → Mercado Pago.
@@ -674,6 +687,7 @@ export default function Planes() {
         apellido: form.apellido.trim(),
         email: form.email.trim(),
         telefono: form.telefono.trim(),
+        dni: form.dni.trim() || undefined,
       });
       const clase = clases.find((c) => c.id === claseId);
       const params: Record<string, unknown> = {
@@ -977,46 +991,52 @@ export default function Planes() {
   }
 
   // ══════════════════════════════ CHECKOUT ══════════════════════════════
-  const pasosDef = ['1 · Horarios', '2 · Datos', '3 · Pago'];
+  const pasosDef = ['1 · Horarios', '2 · Tus datos'];
   const precioSel = tipoSel ? precioLista(tipoSel) : sede?.precioPrueba ?? null;
   const selOrdenado = [...sel].sort((a, b) => a.localeCompare(b));
 
   // Lo elegido hasta acá. En desktop acompaña los tres pasos desde la columna
   // derecha, así que tiene que aguantar que todavía no haya nada elegido.
+  const clasePrueba = clases.find((c) => String(c.id) === sel[0]);
   const resumen: DatosResumen = {
+    eyebrow: mode === 'prueba' ? 'Tu clase de prueba' : 'Tu plan',
     titulo:
       mode === 'prueba'
-        ? clases.find((c) => String(c.id) === sel[0])?.actividad.nombre ??
-          'Clase de prueba'
+        ? clasePrueba?.actividad.nombre ?? 'Clase de prueba'
         : tipoSel?.etiqueta || tipoSel?.nombre || 'Tu plan',
     sedeNombre: sede?.nombre,
-    items:
+    filas:
       mode === 'prueba'
-        ? selOrdenado.map((k) => `${labelDeSel(k)} hs`)
+        ? clasePrueba
+          ? [
+              {
+                label: 'Fecha',
+                value: `${formatDayLong(clasePrueba.inicio)} · ${formatTime(clasePrueba.inicio)}`,
+              },
+              {
+                label: 'Instructora',
+                value:
+                  nombreConInicial(clasePrueba.instructor) ?? 'A confirmar',
+              },
+            ]
+          : []
         : flex
           ? [
-              'Pack flexible · reservás desde la app',
-              ...selOrdenado.map((k) => `Primera clase: ${labelDeSel(k)} hs`),
+              { label: 'Modalidad', value: 'Pack flexible' },
+              { label: 'Reservas', value: 'Desde la app' },
             ]
-          : selOrdenado.map((k) => `${labelDeSel(k)} hs · todas las semanas`),
+          : selOrdenado.map((k, i) => ({
+              label: i === 0 ? 'Todas las semanas' : '',
+              value: `${labelDeSel(k)} hs`,
+            })),
     pendiente:
       mode === 'prueba'
         ? 'Elegí tu clase para verla acá'
         : modalidad == null
           ? 'Elegí cómo querés usar tus clases'
           : 'Elegí tus horarios para verlos acá',
-    totalLabel: `Total ${
-      mode === 'prueba'
-        ? 'clase de prueba'
-        : periodo === 'MENSUAL'
-          ? 'mensual'
-          : 'trimestral'
-    }`,
+    totalLabel: 'Total',
     total: mode === 'prueba' ? precioSel : precioCheckout,
-    fine:
-      mode === 'prueba'
-        ? 'Si te quedás, este importe se descuenta de tu plan.'
-        : 'Sin permanencia. Precio del pago online con tarjeta.',
   };
 
   return (
@@ -1062,9 +1082,8 @@ export default function Planes() {
             quedar arriba del medio de pago. En desktop la grilla lo manda a la
             columna derecha, donde acompaña los tres pasos. */}
         <aside
-          className={`planes__co-aside${step === 3 ? '' : ' planes__co-aside--desk'}`}
+          className={`planes__co-aside${step === 2 ? '' : ' planes__co-aside--desk'}`}
         >
-          <h2 className="planes__co-title">Resumen</h2>
           <ResumenCompra datos={resumen} />
         </aside>
 
@@ -1315,62 +1334,89 @@ export default function Planes() {
       )}
 
       {/* ── Paso 2: datos ── */}
+      {/* ── Paso 2: datos y pago en la misma pantalla ── */}
       {step === 2 && (
-        <form className="planes__co-body" onSubmit={continuar2} noValidate>
-          <h2 className="planes__co-title">Tus datos</h2>
-          <p className="planes__co-sub">
+        <form className="planes__form" onSubmit={pagar} noValidate>
+          <h3 className="planes__form-title">Tus datos</h3>
+          <p className="planes__form-sub">
             {mode === 'prueba'
-              ? 'Con esto reservamos tu lugar y te enviamos la confirmación.'
+              ? 'No creamos cuenta. Solo los usamos para esta reserva.'
               : 'Con esto te creamos la cuenta para reservar desde la app.'}
           </p>
-          <div className="planes__fields">
-            <input
-              className="planes__input"
-              placeholder="Nombre"
-              autoComplete="given-name"
-              value={form.nombre}
-              onChange={handleChange('nombre')}
-            />
-            {errors.nombre && <span className="planes__field-err">{errors.nombre}</span>}
-            <input
-              className="planes__input"
-              placeholder="Apellido"
-              autoComplete="family-name"
-              value={form.apellido}
-              onChange={handleChange('apellido')}
-            />
-            {errors.apellido && <span className="planes__field-err">{errors.apellido}</span>}
-            <input
-              className="planes__input"
-              placeholder="Email"
-              type="email"
-              autoComplete="email"
-              value={form.email}
-              onChange={handleChange('email')}
-            />
-            {errors.email && <span className="planes__field-err">{errors.email}</span>}
-            <input
-              className="planes__input"
-              placeholder="Teléfono (WhatsApp)"
-              type="tel"
-              autoComplete="tel"
-              value={form.telefono}
-              onChange={handleChange('telefono')}
-            />
-            {errors.telefono && <span className="planes__field-err">{errors.telefono}</span>}
-          </div>
-          <button type="submit" className="planes__co-cta">
-            Continuar al pago
-          </button>
-        </form>
-      )}
 
-      {/* ── Paso 3: resumen + pago ── */}
-      {step === 3 && (
-        <div className="planes__co-body">
+          <div className="planes__fields">
+            <div className="planes__field-row">
+              <label className="planes__field">
+                <span className="planes__field-lbl">Nombre</span>
+                <input
+                  className="planes__input"
+                  autoComplete="given-name"
+                  value={form.nombre}
+                  onChange={handleChange('nombre')}
+                />
+                {errors.nombre && (
+                  <span className="planes__field-err">{errors.nombre}</span>
+                )}
+              </label>
+              <label className="planes__field">
+                <span className="planes__field-lbl">Apellido</span>
+                <input
+                  className="planes__input"
+                  autoComplete="family-name"
+                  value={form.apellido}
+                  onChange={handleChange('apellido')}
+                />
+                {errors.apellido && (
+                  <span className="planes__field-err">{errors.apellido}</span>
+                )}
+              </label>
+            </div>
+            <label className="planes__field">
+              <span className="planes__field-lbl">Email</span>
+              <input
+                className="planes__input"
+                placeholder="tu@email.com"
+                type="email"
+                autoComplete="email"
+                value={form.email}
+                onChange={handleChange('email')}
+              />
+              {errors.email && (
+                <span className="planes__field-err">{errors.email}</span>
+              )}
+            </label>
+            <label className="planes__field">
+              <span className="planes__field-lbl">Teléfono</span>
+              <input
+                className="planes__input"
+                placeholder="+54 9 11 …"
+                type="tel"
+                autoComplete="tel"
+                value={form.telefono}
+                onChange={handleChange('telefono')}
+              />
+              {errors.telefono && (
+                <span className="planes__field-err">{errors.telefono}</span>
+              )}
+            </label>
+            {/* Solo en la clase de prueba: el checkout de planes no recibe DNI. */}
+            {mode === 'prueba' && (
+              <label className="planes__field">
+                <span className="planes__field-lbl">
+                  DNI <span className="planes__field-opt">(opcional)</span>
+                </span>
+                <input
+                  className="planes__input"
+                  placeholder="12345678"
+                  inputMode="numeric"
+                  value={form.dni}
+                  onChange={handleChange('dni')}
+                />
+              </label>
+            )}
+          </div>
+
           {mode === 'plan' && (
-            <>
-              <h2 className="planes__co-title">Cómo querés pagar</h2>
             <div className="planes__medios">
               <button
                 type="button"
@@ -1385,7 +1431,6 @@ export default function Planes() {
                 <span className="planes__medio-desc">Próximamente</span>
               </button>
             </div>
-            </>
           )}
 
           {submitError && (
@@ -1394,16 +1439,14 @@ export default function Planes() {
             </div>
           )}
 
-          <button
-            type="button"
-            className="planes__co-cta"
-            disabled={submitting}
-            onClick={mode === 'prueba' ? pagarPrueba : pagarPlan}
-          >
-            {submitting ? 'Redirigiendo a Mercado Pago...' : 'Pagar con Mercado Pago'}
+          <button type="submit" className="planes__co-cta" disabled={submitting}>
+            {submitting ? 'Redirigiendo a Mercado Pago…' : 'Pagar y reservar'}
           </button>
-          <p className="planes__co-secure">Pago seguro vía Mercado Pago</p>
-        </div>
+          <p className="planes__co-secure">
+            Al continuar aceptás los términos y condiciones de CLIC. El pago se
+            procesa de forma segura a través de Mercado Pago.
+          </p>
+        </form>
       )}
 
         </div>

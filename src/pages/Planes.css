@@ -834,62 +834,101 @@
 }
 
 /* ── Resumen ── */
+/* ── Resumen de compra ──────────────────────────────────────────────────
+   Tarjeta oscura con filas etiqueta/valor, como el checkout del sitio actual.
+   El contraste contra el formulario blanco de al lado es lo que separa "lo que
+   estás comprando" de "lo que tenés que completar". */
 .planes__summary {
-  background: #fff;
-  border: 1px solid var(--pl-line);
-  border-radius: 18px;
-  padding: 22px;
+  background: var(--pl-ink);
+  border-radius: 20px;
+  padding: 26px 24px;
+  color: #fff;
   display: flex;
   flex-direction: column;
-  gap: 12px;
 }
-.planes__summary-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
+.planes__summary-eyebrow {
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
 }
 .planes__summary-plan {
-  font-size: 19px;
+  font-size: 26px;
+  margin-top: 8px;
+  line-height: 1.1;
 }
 .planes__summary-sede {
-  font-size: 11px;
-  color: var(--pl-mute);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 4px;
 }
 .planes__summary-line {
   height: 1px;
-  background: rgba(35, 34, 43, 0.08);
+  background: rgba(255, 255, 255, 0.14);
+  margin: 20px 0;
 }
-.planes__summary-items {
+.planes__summary-rows {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 11px;
 }
-.planes__summary-item {
+.planes__summary-row {
   display: flex;
-  gap: 10px;
+  justify-content: space-between;
   align-items: baseline;
-  font-size: 13px;
-  color: var(--pl-soft);
+  gap: 16px;
+  font-size: 12.5px;
 }
-.planes__summary-check {
-  font-size: 11px;
-  color: var(--pl-green);
-  font-weight: 700;
+.planes__summary-row-lbl {
+  color: rgba(255, 255, 255, 0.5);
+  white-space: nowrap;
+}
+.planes__summary-row-val {
+  color: #fff;
+  font-weight: 500;
+  text-align: right;
+}
+.planes__summary-pend {
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.45);
+  font-style: italic;
 }
 .planes__summary-total {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  font-size: 12px;
-  color: #6d6b66;
+  gap: 12px;
+}
+.planes__summary-total-lbl {
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  font-weight: 500;
 }
 .planes__summary-total-val {
-  font-size: 24px;
-  color: var(--pl-ink);
+  font-size: 30px;
+  color: #fff;
 }
-.planes__summary-fine {
+.planes__summary-mp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
   font-size: 11px;
-  color: var(--pl-mute);
+  color: rgba(255, 255, 255, 0.5);
+}
+.planes__summary-mp-chip {
+  background: #b9a795;
+  color: var(--pl-ink);
+  border-radius: 5px;
+  padding: 3px 6px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
 }
 
 /* ── Selector de medio de pago (plan) ── */
@@ -1297,4 +1336,75 @@
   .planes__slots {
     grid-template-columns: repeat(6, 1fr);
   }
+}
+
+/* ── Formulario de datos + pago ─────────────────────────────────────────
+   Tarjeta blanca con campos etiquetados, como el checkout del sitio actual.
+   Los datos y el pago viven en la misma pantalla: el submit es el que dispara
+   el pago, sin un paso de confirmación en el medio. */
+.planes__form {
+  background: #fff;
+  border: 1px solid rgba(35, 34, 43, 0.1);
+  border-radius: 20px;
+  padding: 26px 24px 28px;
+  box-shadow:
+    0 1px 2px rgba(35, 34, 43, 0.04),
+    0 10px 22px -14px rgba(35, 34, 43, 0.22);
+}
+.planes__form-title {
+  font-family: 'Prata', Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  font-size: 22px;
+}
+.planes__form-sub {
+  font-size: 12px;
+  color: var(--pl-mute);
+  margin-top: 4px;
+  margin-bottom: 20px;
+}
+.planes__field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.planes__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.planes__field-lbl {
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--pl-mute);
+  font-weight: 500;
+}
+.planes__field-opt {
+  letter-spacing: 0;
+  text-transform: none;
+  font-weight: 400;
+}
+.planes__fields {
+  gap: 14px;
+}
+.planes__input {
+  background: #f4f3ef;
+  border-color: transparent;
+}
+.planes__input:focus {
+  background: #fff;
+  border-color: var(--pl-ink);
+}
+
+/* El CTA y el selector de medio venían pegados al último campo. */
+.planes__form .planes__medios {
+  margin-top: 22px;
+}
+.planes__form .planes__co-cta {
+  margin-top: 24px;
+}
+.planes__form .planes__co-secure {
+  margin-top: 12px;
+  line-height: 1.5;
 }
