@@ -8,9 +8,11 @@ interface Props {
   /** Tocar la fila abre el checkout de prueba con esta clase ya elegida. La
    *  página es la que sabe cómo hacerlo (y la que mide el begin_checkout). */
   onElegir: (clase: Clase) => void;
+  /** Es la clase que ya venía elegida (al volver del paso de datos). */
+  elegida?: boolean;
 }
 
-export function ClaseRow({ clase, onElegir }: Props) {
+export function ClaseRow({ clase, onElegir, elegida = false }: Props) {
   const cupos = clase.cuposDisponibles;
   const desc = clase.actividad.descripcion;
   const profe = nombreConInicial(clase.instructor);
@@ -23,7 +25,8 @@ export function ClaseRow({ clase, onElegir }: Props) {
     <div
       role="button"
       tabIndex={0}
-      className={`clase-row${open ? ' clase-row--open' : ''}`}
+      aria-pressed={elegida}
+      className={`clase-row${open ? ' clase-row--open' : ''}${elegida ? ' clase-row--elegida' : ''}`}
       onClick={() => onElegir(clase)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -54,7 +57,7 @@ export function ClaseRow({ clase, onElegir }: Props) {
       </div>
       <div className={`clase-row__cupos${cupos === 0 ? ' clase-row__cupos--agotado' : ''}`}>
         <span className="clase-row__cupos-lbl">
-          {cupos > 0 ? 'Reserva ahora' : 'No disponible'}
+          {elegida ? '✓ Elegida' : cupos > 0 ? 'Reserva ahora' : 'No disponible'}
         </span>
       </div>
       <span className="clase-row__arrow" aria-hidden="true">→</span>
