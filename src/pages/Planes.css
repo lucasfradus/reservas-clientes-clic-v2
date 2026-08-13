@@ -1070,3 +1070,127 @@
   text-decoration: underline;
   margin-top: 6px;
 }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   DESKTOP (≥1024px)
+
+   Layout propio para pantalla grande. Todo lo de acá abajo vive dentro del
+   media query a propósito: el diseño mobile es el que está validado y el que
+   tiene el tráfico, así que no se toca ni una regla de la base. Entre 769 y
+   1023 sigue la columna, que es lo correcto en tablet vertical.
+   ══════════════════════════════════════════════════════════════════════════ */
+@media (min-width: 1024px) {
+  .planes {
+    max-width: 1120px;
+    padding: 0 32px 64px;
+  }
+
+  /* Los bloques de texto no acompañan el ancho de la página: un párrafo a
+     1120px no se lee. Se topean y se centran. */
+  .planes__intro,
+  .planes__trust,
+  .planes__reminder {
+    max-width: 640px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* ── Hero a dos columnas ──────────────────────────────────────────────
+     La foto deja de ser un fondo con el texto encima (recurso de mobile) y
+     pasa a ser una mitad real. El degradado se apaga: ya no hay texto sobre
+     la imagen que sostener. */
+  .planes__hero {
+    margin: -48px -32px 0;
+    min-height: max(560px, calc(100dvh - 72px));
+    display: grid;
+    grid-template-columns: 1.1fr 1fr;
+    align-items: stretch;
+  }
+  .planes__hero-media {
+    position: relative;
+    inset: auto;
+    height: 100%;
+  }
+  .planes__hero-media::after {
+    background: linear-gradient(
+      to right,
+      transparent 60%,
+      rgba(35, 34, 43, 0.35) 100%
+    );
+  }
+  .planes__hero-body {
+    justify-content: center;
+    padding: 56px 56px 56px 48px;
+    gap: 6px;
+  }
+  .planes__hero-name {
+    font-size: 52px;
+  }
+  .planes__hero-price {
+    font-size: 44px;
+  }
+  .planes__hero-place,
+  .planes__hero-note {
+    font-size: 13px;
+  }
+  /* El CTA a 430px ocupaba todo el ancho; a 560 queda desmesurado. */
+  .planes__hero-cta {
+    align-self: flex-start;
+    padding: 16px 40px;
+  }
+  .planes__hero-link {
+    align-self: flex-start;
+  }
+  .planes__hero-links {
+    justify-content: flex-start;
+    gap: 28px;
+  }
+  .planes__back-link {
+    top: 24px;
+    left: 32px;
+  }
+
+  /* ── Planes: las tres tarjetas en una fila ────────────────────────────
+     Con alturas distintas según la descripción, así que el CTA se despega
+     al piso con margin-top auto y las tres quedan alineadas abajo. */
+  .planes__toggle-wrap {
+    max-width: 420px;
+    margin: 0 auto;
+  }
+  .planes__cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    align-items: stretch;
+    gap: 20px;
+    padding-top: 24px;
+  }
+  .planes__card {
+    padding: 30px 26px;
+  }
+  .planes__card-cta {
+    margin-top: auto;
+  }
+  /* El precio y el ahorro se separan del CTA, que ahora queda abajo de todo. */
+  .planes__card-price-row {
+    margin-bottom: 4px;
+  }
+  .planes__card-save {
+    margin-bottom: 22px;
+  }
+
+  /* ── Beneficios a dos columnas ────────────────────────────────────── */
+  .planes__benefits {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    column-gap: 40px;
+    max-width: 760px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .planes__divider {
+    max-width: 640px;
+    margin: 0 auto;
+    padding-top: 56px;
+  }
+}
