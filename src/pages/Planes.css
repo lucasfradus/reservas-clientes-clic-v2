@@ -2,6 +2,9 @@
    columna mobile centrada, Prata para los títulos editoriales, Poppins light
    para el nombre de la sede y los importes, paleta taupe + ink. */
 .planes {
+  /* Ancla del link "Ver todas las sedes", que en mobile flota sobre el hero. */
+  position: relative;
+
   --pl-ink: #23222b;
   --pl-soft: #55534e;
   --pl-mute: #8a8880;
@@ -119,6 +122,10 @@
   align-items: center;
   justify-content: center;
 }
+/* Vive antes del hero en el DOM (en desktop va arriba de la tarjeta), pero en
+   mobile flota sobre la foto. El margen negativo del hero arrastra al
+   contenedor, así que ambos arrancan en el mismo punto y `top` se mide igual
+   que cuando el link era hijo del hero. */
 .planes__back-link {
   position: absolute;
   top: 16px;
@@ -132,6 +139,10 @@
 }
 .planes__back-link:hover {
   color: #fff;
+}
+/* La descripción de la sede solo entra en el hero de desktop. */
+.planes__hero-desc {
+  display: none;
 }
 /* Localidad y dirección en un solo renglón. */
 .planes__hero-place {
@@ -1081,7 +1092,7 @@
    ══════════════════════════════════════════════════════════════════════════ */
 @media (min-width: 1024px) {
   .planes {
-    max-width: 1120px;
+    max-width: 1040px;
     padding: 0 32px 64px;
   }
 
@@ -1095,16 +1106,46 @@
     margin-right: auto;
   }
 
-  /* ── Hero a dos columnas ──────────────────────────────────────────────
-     La foto deja de ser un fondo con el texto encima (recurso de mobile) y
-     pasa a ser una mitad real. El degradado se apaga: ya no hay texto sobre
-     la imagen que sostener. */
+  /* ── Hero: tarjeta con la foto y el cuerpo lado a lado ────────────────
+     Ni a sangre ni a pantalla completa. El 100dvh es un recurso de mobile,
+     donde la primera pantalla tiene que vender sola; en un monitor obliga a
+     scrollear una pantalla entera para enterarse de que hay planes, y la foto
+     no gana nada por medir 828px de alto en vez de 460. */
   .planes__hero {
-    margin: -48px -32px 0;
-    min-height: max(560px, calc(100dvh - 72px));
+    margin: 0;
+    /* min-height y no height: el cuerpo tiene una línea más que el sitio viejo
+       (el link a planes) y con alto fijo el overflow del hero recortaba los
+       accesos de WhatsApp y mapa. */
+    min-height: 460px;
+    border-radius: 28px;
+    box-shadow:
+      0 2px 6px rgba(35, 34, 43, 0.06),
+      0 24px 48px -24px rgba(35, 34, 43, 0.45);
     display: grid;
-    grid-template-columns: 1.1fr 1fr;
+    grid-template-columns: 44fr 56fr;
     align-items: stretch;
+  }
+  /* Arriba de la tarjeta, no encima de la foto: sobre una foto clara no se
+     leía. */
+  .planes__back-link {
+    position: static;
+    display: inline-block;
+    margin-bottom: 16px;
+    color: var(--pl-mute);
+    text-shadow: none;
+  }
+  .planes__back-link:hover {
+    color: var(--pl-ink);
+  }
+  .planes__hero-desc {
+    display: block;
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    font-size: 13px;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.72);
+    max-width: 42ch;
   }
   .planes__hero-media {
     position: relative;
@@ -1120,14 +1161,17 @@
   }
   .planes__hero-body {
     justify-content: center;
-    padding: 56px 56px 56px 48px;
-    gap: 6px;
+    padding: 40px 44px;
+    gap: 4px;
   }
   .planes__hero-name {
-    font-size: 52px;
+    font-size: 44px;
   }
   .planes__hero-price {
-    font-size: 44px;
+    font-size: 34px;
+  }
+  .planes__hero-gap {
+    margin-top: 22px;
   }
   .planes__hero-place,
   .planes__hero-note {

@@ -659,8 +659,15 @@ export default function Planes() {
   if (screen === 'landing') {
     return (
       <div className="planes planes--landing">
-        {/* Hero: ocupa la pantalla entera. La galería es el fondo y el cuerpo
-            se apoya abajo, sobre el degradado. */}
+        {/* En mobile flota sobre la foto; en desktop, donde el hero es una
+            tarjeta acotada, va arriba de ella. */}
+        <Link to="/" className="planes__back-link">
+          ← Ver todas las sedes
+        </Link>
+
+        {/* Hero. En mobile ocupa la pantalla entera, con la galería de fondo y
+            el cuerpo apoyado abajo sobre el degradado. En desktop es una
+            tarjeta con la foto y el cuerpo lado a lado. */}
         <section className="planes__hero" ref={heroRef}>
           <div className="planes__hero-media">
             <SedeGaleria
@@ -674,9 +681,6 @@ export default function Planes() {
               }
             />
           </div>
-          <Link to="/" className="planes__back-link">
-            ← Ver todas las sedes
-          </Link>
           <div className="planes__hero-body">
             <p className="planes__hero-place">
               <span className="planes__hero-city">{sede?.ciudad}</span>
@@ -684,6 +688,10 @@ export default function Planes() {
               {sede?.direccion}
             </p>
             <h1 className="planes__hero-name">{sede?.nombre}</h1>
+            {/* Solo desktop: en mobile el hero no tiene lugar y se sacó. */}
+            {sede?.descripcion && (
+              <p className="planes__hero-desc">{sede.descripcion}</p>
+            )}
 
             <span className="planes__eyebrow planes__eyebrow--light planes__hero-gap">
               Tu clase de prueba en CLIC
