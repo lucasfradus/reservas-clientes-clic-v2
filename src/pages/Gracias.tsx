@@ -267,10 +267,33 @@ export default function Gracias() {
         <div className="gracias__icon gracias__icon--ok">
           <CheckIcon />
         </div>
-        <h1 className="gracias__title t-display">¡Reserva confirmada!</h1>
+        <h1 className="gracias__title">
+          {esPlan ? '¡Ya sos parte de CLIC!' : '¡Reserva confirmada!'}
+        </h1>
         <p className="gracias__sub">
-          Tu clase de prueba está agendada. Te enviamos un email con los detalles.
+          {esPlan
+            ? 'Tu plan está activo. Te enviamos un email con los datos para entrar a la app, donde vas a ver tus clases.'
+            : 'Tu clase de prueba está agendada. Te enviamos un email con los detalles.'}
         </p>
+
+        {/* El checkout de planes no manda actividad ni fecha (todavía no hay
+            una clase puntual), así que el detalle se arma con lo que sí viaja:
+            el plan, la sede y el importe. */}
+        {esPlan && plan && (
+          <div className="gracias__detail">
+            <p className="gracias__actividad">{plan}</p>
+            {sede && <p className="gracias__fecha">{sede}</p>}
+            {precio && Number.isFinite(Number(precio)) && (
+              <p className="gracias__total">
+                {new Intl.NumberFormat('es-AR', {
+                  style: 'currency',
+                  currency: 'ARS',
+                  maximumFractionDigits: 0,
+                }).format(Number(precio))}
+              </p>
+            )}
+          </div>
+        )}
 
         {hayDetalle && (
           <div className="gracias__detail">
@@ -319,11 +342,13 @@ export default function Gracias() {
         )}
 
         <div className="gracias__info">
-          <p className="gracias__info-title">¿Es tu primera vez?</p>
+          <p className="gracias__info-title">
+            {esPlan ? '¿Cómo sigo?' : '¿Es tu primera vez?'}
+          </p>
           <p>
-            Llegá 10 minutos antes de tu clase. Traé ropa cómoda, tu agua o
-            bebida hidratante y medias antideslizantes (si no tenés, podés
-            adquirirlas en la sede).
+            {esPlan
+              ? 'Entrá a la app con el email que usaste para pagar. Ahí vas a ver tus clases y podés reprogramarlas si algún día no podés venir.'
+              : 'Llegá 10 minutos antes de tu clase. Traé ropa cómoda, tu agua o bebida hidratante y medias antideslizantes (si no tenés, podés adquirirlas en la sede).'}
           </p>
         </div>
       </div>

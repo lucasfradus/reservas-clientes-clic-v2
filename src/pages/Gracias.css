@@ -37,15 +37,19 @@
 }
 
 .gracias__icon--pending {
-  background: var(--beige-soft);
+  background: var(--bg);
   color: var(--taupe-dark);
 }
 
 /* ===== Head ===== */
+/* Prata, como los títulos editoriales del resto del micrositio. */
 .gracias__title {
-  font-size: 34px;
-  line-height: 1.1;
-  color: var(--ink);
+  font-family: 'Prata', Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  letter-spacing: 0;
+  font-size: 30px;
+  line-height: 1.15;
+  color: var(--ink-deep);
 }
 
 .gracias__sub {
@@ -69,11 +73,12 @@
 }
 
 /* ===== Detail card (approved) ===== */
+/* Ink, igual que el resumen del checkout: cierra el circuito visual con lo que
+   la persona vio justo antes de pagar. */
 .gracias__detail {
   margin-top: 28px;
   padding: 26px 24px;
-  background: var(--bg);
-  border: 1px solid var(--line-soft);
+  background: var(--ink-deep);
   border-radius: var(--radius-lg);
   text-align: center;
 }
@@ -158,10 +163,12 @@
 }
 
 /* ===== Info box (approved) ===== */
+/* El beige salió de la paleta cuando el footer pasó a ink: acá también. */
 .gracias__info {
   margin-top: 28px;
   padding: 20px 22px;
-  background: var(--beige-soft);
+  background: var(--bg);
+  border: 1px solid var(--line-soft);
   border-radius: var(--radius-md);
   text-align: left;
   font-size: 12px;
@@ -204,4 +211,33 @@
   .gracias__actividad {
     font-size: 21px;
   }
+}
+
+/* La tarjeta de detalle es ink, igual que el resumen del checkout: cierra el
+   circuito visual con lo que la persona vio antes de pagar. */
+.gracias__detail .gracias__actividad {
+  font-family: 'Prata', Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  color: #fff;
+}
+.gracias__detail .gracias__fecha,
+.gracias__detail .gracias__sede,
+.gracias__detail .gracias__dir {
+  color: rgba(255, 255, 255, 0.7);
+}
+.gracias__detail .gracias__loc {
+  border-top-color: rgba(255, 255, 255, 0.14);
+}
+.gracias__detail .gracias__loc-pin {
+  color: rgba(255, 255, 255, 0.55);
+}
+.gracias__total {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  font-family: var(--font-sans);
+  font-weight: 300;
+  letter-spacing: -0.6px;
+  font-size: 30px;
+  color: #fff;
 }
