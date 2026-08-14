@@ -8,6 +8,25 @@ interface Props {
   fallback?: ReactNode;
 }
 
+/** Los anchos que el backend genera al subir la foto (WebP). */
+const ANCHOS = [640, 1280, 2000] as const;
+
+/**
+ * Cuánto ancho ocupa el hero en cada tamaño de pantalla. En mobile es todo el
+ * viewport; desde 1024 el hero es una tarjeta de 976px y la foto es el 44%.
+ */
+const SIZES = '(min-width: 1024px) 430px, 100vw';
+
+/**
+ * Le pide al storage la variante de ese ancho. Si el original no vive en
+ * nuestro bucket (URL externa cargada a mano), se devuelve tal cual: el
+ * parámetro no le haría nada.
+ */
+function anchoDe(url: string, w: number): string {
+  if (!url.includes('/api/storage/')) return url;
+  return `${url}${url.includes('?') ? '&' : '?'}w=${w}`;
+}
+
 /**
  * Carrusel de fotos que llena el contenedor donde se monta (el media del
  * hero de la sede). Usa scroll-snap nativo, así el swipe en mobile es el
@@ -46,7 +65,9 @@ export function SedeGaleria({ images, sedeNombre, fallback }: Props) {
         {visibles.map(({ url, index }, i) => (
           <div className="galeria__slide" key={index}>
             <img
-              src={url}
+              src={anchoDe(url, 1280)}
+              srcSet={ANCHOS.map((w) => `${anchoDe(url, w)} ${w}w`).join(', ')}
+              sizes={SIZES}
               alt={`${sedeNombre} — foto ${i + 1} de ${visibles.length}`}
               loading={i === 0 ? 'eager' : 'lazy'}
               decoding="async"
