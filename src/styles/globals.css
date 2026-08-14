@@ -6,6 +6,10 @@
   --taupe: #bcac9e;
   --taupe-dark: #9a8a7c;
   --ink: #2c2f34;
+  /* El ink de la pantalla de sede (hero, tarjeta de resumen). Vive acá para que
+     el footer pueda cerrar con el mismo color; `.planes` lo repite como
+     --pl-ink porque su paleta es autocontenida. */
+  --ink-deep: #23222b;
   --ink-soft: #5a5d62;
   --ink-mute: #9a9da2;
   --line: #e0d8cd;
