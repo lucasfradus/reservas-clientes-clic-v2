@@ -22,6 +22,10 @@ export default function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/sede/:slug" element={<Planes />} />
         <Route path="/sede/:slug/precios" element={<PreciosRedirect />} />
+        {/* El sitio viejo reservaba en /reservar/:claseId; acá la clase se elige
+            dentro del checkout. El id de clase no dice a qué sede pertenece, así
+            que lo único honesto es mandar a elegir sede en vez de un 404. */}
+        <Route path="/reservar/:claseId" element={<Navigate to="/" replace />} />
         <Route path="/gracias" element={<Gracias />} />
         <Route path="*" element={<NotFound />} />
       </Route>
