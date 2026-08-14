@@ -1123,7 +1123,7 @@ export default function Planes() {
                     {
                       id: 'fijo' as const,
                       titulo: 'Horarios fijos',
-                      desc: 'Tu lugar reservado, mismo grupo y mismo profe cada semana. Ideal para sostener la constancia.',
+                      desc: 'Tu lugar reservado, mismo grupo y mismo profe cada semana. Si algún día no podés, reprogramás esa clase desde la app.',
                     },
                     {
                       id: 'flex' as const,
@@ -1262,6 +1262,7 @@ export default function Planes() {
                       ))}
                     </div>
                   )}
+
                 </>
               )}
 
@@ -1442,7 +1443,12 @@ export default function Planes() {
                 onClick={() => setMedio('online')}
               >
                 <span className="planes__medio-title">Pago único</span>
-                <span className="planes__medio-desc">Tarjeta de crédito · Mercado Pago</span>
+                {/* Lo que la preferencia de MP deja disponible: excluye
+                    efectivo, transferencia y cajero, no la tarjeta de débito
+                    ni el dinero en cuenta. */}
+                <span className="planes__medio-desc">
+                  Tarjeta de débito o crédito, o dinero en cuenta
+                </span>
               </button>
               <button type="button" className="planes__medio planes__medio--off" disabled>
                 <span className="planes__medio-title">Débito automático</span>
