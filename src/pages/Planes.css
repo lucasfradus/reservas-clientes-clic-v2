@@ -1408,3 +1408,14 @@
   margin-top: 12px;
   line-height: 1.5;
 }
+
+/* La barra fija flota sobre el final del documento y tapaba el footer. Se le
+   suma al body el alto de la barra, solo cuando la barra existe. */
+/* La barra flota sobre el final del documento y tapaba el texto del footer. El
+   aire tiene que quedar DESPUÉS del footer, así que va como padding suyo: en
+   <main> solo lo empujaba hacia abajo y seguía terminando debajo de la barra. */
+@media (max-width: 640px) {
+  body:has(.planes__sticky) .clic-footer {
+    padding-bottom: 108px;
+  }
+}

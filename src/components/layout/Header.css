@@ -1,6 +1,8 @@
+/* Se funde con la página en vez de ser una banda aparte: el micrositio tiene
+   una sola identidad y el header es parte de ella, no un marco alrededor. */
 .clic-header {
-  background: var(--surface);
-  border-bottom: 1px solid var(--line-soft);
+  background: var(--bg);
+  border-bottom: 1px solid rgba(35, 34, 43, 0.08);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -37,30 +39,29 @@
   gap: 28px;
 }
 
+/* Enlace y no botón: como pastilla con borde competía con el CTA del hero, que
+   es la acción que la página quiere que se toque. */
 .clic-header__login {
   display: inline-flex;
   align-items: center;
-  padding: 10px 20px;
-  border: 1px solid var(--ink);
-  border-radius: var(--radius-pill);
   font-size: 10px;
   font-weight: 600;
   letter-spacing: 1.2px;
   text-transform: uppercase;
-  color: var(--ink);
-  transition: background 0.2s, color 0.2s;
+  color: var(--ink-soft);
+  border-bottom: 1px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
 }
 
 .clic-header__login:hover {
-  background: var(--ink);
-  color: var(--surface);
+  color: var(--ink);
+  border-bottom-color: var(--ink);
 }
 
 @media (max-width: 768px) {
   .clic-header__inner { height: 60px; }
   .clic-header__tagline { display: none; }
   .clic-header__login {
-    padding: 8px 14px;
     font-size: 9px;
     letter-spacing: 1px;
   }

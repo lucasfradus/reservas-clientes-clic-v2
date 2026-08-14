@@ -1,7 +1,9 @@
+/* Cierra la página en ink, el mismo color del hero y de la tarjeta de resumen.
+   Antes era una franja beige que no aparecía en ninguna otra parte de la
+   pantalla y quedaba pegada abajo como si fuera de otro sitio. */
 .clic-footer {
-  background: var(--beige-soft);
-  border-top: 1px solid var(--line);
-  padding: 32px 0;
+  background: var(--ink-deep);
+  padding: 40px 0;
   margin-top: auto;
 }
 
@@ -23,12 +25,12 @@
   font-weight: 500;
   letter-spacing: 2px;
   text-transform: uppercase;
-  color: var(--ink-soft);
+  color: rgba(255, 255, 255, 0.75);
 }
 
 .clic-footer__copy {
   font-size: 11px;
-  color: var(--ink-mute);
+  color: rgba(255, 255, 255, 0.45);
   letter-spacing: 0.3px;
 }
 
