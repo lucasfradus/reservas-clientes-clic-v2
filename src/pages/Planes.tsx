@@ -1123,7 +1123,7 @@ export default function Planes() {
                     {
                       id: 'fijo' as const,
                       titulo: 'Horarios fijos',
-                      desc: 'Tu lugar reservado, mismo grupo y mismo profe cada semana. Ideal para sostener la constancia.',
+                      desc: 'Tu lugar reservado, mismo grupo y mismo profe cada semana. Si algún día no podés, reprogramás esa clase desde la app.',
                     },
                     {
                       id: 'flex' as const,
@@ -1263,12 +1263,6 @@ export default function Planes() {
                     </div>
                   )}
 
-                  {/* Responde la duda que aparece justo acá, al comprometerse
-                      con un horario de todas las semanas. */}
-                  <p className="planes__grid-nota">
-                    Si algún día no podés venir, reprogramás esa clase desde la
-                    app.
-                  </p>
                 </>
               )}
 
