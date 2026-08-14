@@ -1443,7 +1443,12 @@ export default function Planes() {
                 onClick={() => setMedio('online')}
               >
                 <span className="planes__medio-title">Pago único</span>
-                <span className="planes__medio-desc">Tarjeta de crédito · Mercado Pago</span>
+                {/* Lo que la preferencia de MP deja disponible: excluye
+                    efectivo, transferencia y cajero, no la tarjeta de débito
+                    ni el dinero en cuenta. */}
+                <span className="planes__medio-desc">
+                  Tarjeta de débito o crédito, o dinero en cuenta
+                </span>
               </button>
               <button type="button" className="planes__medio planes__medio--off" disabled>
                 <span className="planes__medio-title">Débito automático</span>
