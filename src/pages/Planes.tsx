@@ -1262,6 +1262,13 @@ export default function Planes() {
                       ))}
                     </div>
                   )}
+
+                  {/* Responde la duda que aparece justo acá, al comprometerse
+                      con un horario de todas las semanas. */}
+                  <p className="planes__grid-nota">
+                    Si algún día no podés venir, reprogramás esa clase desde la
+                    app.
+                  </p>
                 </>
               )}
 

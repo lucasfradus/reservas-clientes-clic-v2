@@ -1419,3 +1419,13 @@
     padding-bottom: 108px;
   }
 }
+
+/* Nota al pie de la grilla de horarios fijos. Mismo tono que la del pack
+   flexible: aclara, no compite con lo que hay que elegir. */
+.planes__grid-nota {
+  margin-top: 16px;
+  font-size: 11.5px;
+  color: var(--pl-mute);
+  line-height: 1.5;
+  text-wrap: pretty;
+}
