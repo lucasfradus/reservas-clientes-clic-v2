@@ -6,7 +6,9 @@ import './styles/globals.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter>
+    {/* BASE_URL sale del `base` de Vite: '/' en el deploy propio y
+        '/reservar/' cuando la web nueva sirve el portal por rewrite. */}
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <App />
     </BrowserRouter>
   </StrictMode>,
