@@ -14,7 +14,15 @@ import react from '@vitejs/plugin-react'
 //   API_PROXY_TARGET=https://app.clicpilates.com npm run dev
 const API_TARGET = process.env.API_PROXY_TARGET || 'http://localhost:3000'
 
+// La web nueva (repo `web-clicpilates-v2`) sirve este portal por rewrite bajo
+// `clicpilates.com/reservar`, para tener un solo dominio y una sola nav. Detrás
+// de ese rewrite los assets tienen que pedirse a `/reservar/assets/...` y no a
+// la raíz del dominio. El deploy de la web nueva buildea con
+// VITE_BASE_PATH=/reservar/; el deploy actual, sin la variable, no cambia.
+const base = process.env.VITE_BASE_PATH || '/'
+
 export default defineConfig({
+  base,
   plugins: [react()],
   server: {
     host: true,
