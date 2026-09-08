@@ -5,7 +5,7 @@ import {
   useState,
   type FormEvent,
 } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import {
   ApiError,
   checkout,
@@ -284,6 +284,9 @@ function validate(form: {
 
 export default function Planes() {
   const { slug } = useParams<{ slug: string }>();
+  // `?tipo=<CatalogoTipoPlan.id>`: quien llega desde la web ya eligió el plan
+  // mirando su precio, así que no tiene que volver a elegirlo acá.
+  const [searchParams] = useSearchParams();
   const planesRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLElement>(null);
   // Barra fija de mobile: aparece cuando el hero (con su CTA y su precio) se
@@ -582,6 +585,44 @@ export default function Planes() {
     });
     scrollTop();
   };
+
+  // Entrada directa a un plan desde la web (`?tipo=<id>`).
+  //
+  // La web publica los precios de cada sede y ahora cada tarjeta linkea acá con
+  // el plan que la persona eligió. Sin esto, aterriza en la landing y tiene que
+  // volver a elegir lo que ya eligió.
+  //
+  // Es estrictamente aditivo: sin el parámetro —o con uno que no matchee— no
+  // hace nada y la página queda exactamente como estaba. Un id inexistente
+  // (plan dado de baja, o de otra sede) cae en la landing a propósito: es mejor
+  // que un error, porque la landing igual sirve para elegir.
+  //
+  // Corre una sola vez: si no, cada cambio de `tipos` volvería a arrastrar a la
+  // persona al checkout mientras navega.
+  const deepLinkAplicado = useRef(false);
+  useEffect(() => {
+    if (deepLinkAplicado.current) return;
+    if (load.status !== 'ok') return;
+
+    const pedido = Number(searchParams.get('tipo'));
+    if (!Number.isFinite(pedido) || pedido <= 0) return;
+
+    const t = tipos.find((x) => x.id === pedido);
+    // Marcamos igual aunque no matchee: el catálogo ya cargó, así que no va a
+    // aparecer más adelante y reintentar sería quedarse esperando para siempre.
+    deepLinkAplicado.current = true;
+    if (!t) return;
+
+    // El período tiene que acompañar al plan: `planes` filtra por `periodo`, y
+    // si el elegido es trimestral mientras el filtro sigue en mensual, al
+    // volver del checkout la tarjeta no está en la lista.
+    setPeriodo(t.frecuencia);
+    empezarPlan(t);
+    // `empezarPlan` queda fuera de las dependencias a propósito: se redefine en
+    // cada render, así que incluirla volvería a disparar el efecto. Lo que
+    // garantiza que esto pase una sola vez es el guard de arriba, no la lista.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [load.status, searchParams, tipos]);
 
   // Cargar los horarios reales de la sede al elegir modalidad. En "fijo" son
   // los que se eligen; en "flexible" se muestran nada más como referencia de
