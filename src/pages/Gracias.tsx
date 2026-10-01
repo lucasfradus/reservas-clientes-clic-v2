@@ -169,10 +169,12 @@ export default function Gracias() {
     disparado.current = true;
 
     // eventID para deduplicar con la Conversions API del backend: usamos el
-    // `event_id` que mande el server; si todavía no lo manda, uno estable
-    // derivado del payment_id de MP.
+    // `event_id` que mande el server; si no, uno estable derivado del id del
+    // pago de MP, que llega como `payment_id` y también como `collection_id`.
+    // El prefijo `prueba-` es histórico: ClicNet lo usa igual para los planes.
+    const idPagoMP = paymentId || params.get('collection_id') || '';
     const eventId =
-      params.get('event_id') || (paymentId ? `prueba-${paymentId}` : undefined);
+      params.get('event_id') || (idPagoMP ? `prueba-${idPagoMP}` : undefined);
 
     // `content_category` es el campo por el que Meta arma las conversiones
     // personalizadas: con "Trial" / "Subscription" una campaña puede optimizar

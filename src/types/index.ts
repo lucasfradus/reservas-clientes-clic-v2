@@ -47,6 +47,9 @@ export interface CheckoutPayload {
   email: string;
   telefono: string;
   dni: string;
+  /** Cookies del pixel de Meta, para el Purchase de la Conversions API. */
+  fbp?: string;
+  fbc?: string;
 }
 
 export interface CheckoutResponse {
@@ -131,6 +134,9 @@ export interface CheckoutPlanPayload {
   email: string;
   telefono: string;
   dni: string;
+  /** Cookies del pixel de Meta, para el Purchase de la Conversions API. */
+  fbp?: string;
+  fbc?: string;
 }
 
 export interface CheckoutPlanResponse {
