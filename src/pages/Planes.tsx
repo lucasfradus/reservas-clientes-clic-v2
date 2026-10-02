@@ -36,7 +36,11 @@ import {
   nombreConInicial,
 } from '../lib/format';
 import { trackEvent, trackVenta } from '../lib/analytics';
-import { trackMetaEvent } from '../lib/meta';
+import {
+  guardarDatosClienteMeta,
+  identificadoresMeta,
+  trackMetaEvent,
+} from '../lib/meta';
 import './Planes.css';
 
 /**
@@ -707,6 +711,7 @@ export default function Planes() {
         email: form.email.trim(),
         telefono: form.telefono.trim(),
         dni: form.dni.trim(),
+        ...identificadoresMeta(),
       });
       // `content_category` lleva el TIPO de venta, no la sede: es el campo por
       // el que Meta permite armar conversiones personalizadas, y lo que hay que
@@ -727,6 +732,8 @@ export default function Planes() {
         sedeSlug: sede.slug,
         precio: precioCheckout,
       });
+      // Para el advanced matching del Purchase que dispara /gracias al volver.
+      await guardarDatosClienteMeta(form);
       window.location.href = res.initPoint;
     } catch (err) {
       setSubmitting(false);
@@ -754,6 +761,7 @@ export default function Planes() {
         email: form.email.trim(),
         telefono: form.telefono.trim(),
         dni: form.dni.trim(),
+        ...identificadoresMeta(),
       });
       const clase = clases.find((c) => c.id === claseId);
       const params: Record<string, unknown> = {
@@ -773,6 +781,8 @@ export default function Planes() {
         sedeSlug: sede.slug,
         precio: sede.precioPrueba,
       });
+      // Para el advanced matching del Purchase que dispara /gracias al volver.
+      await guardarDatosClienteMeta(form);
       window.location.href = res.initPoint;
     } catch (err) {
       setSubmitting(false);

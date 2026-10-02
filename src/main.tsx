@@ -2,7 +2,12 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
+import { capturarFbclid } from './lib/meta';
 import './styles/globals.css';
+
+// Antes del primer render: una redirección del router puede llevarse el
+// `?fbclid=` del anuncio antes de que el pixel arme la cookie `_fbc`.
+capturarFbclid();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
